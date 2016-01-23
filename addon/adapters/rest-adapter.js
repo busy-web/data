@@ -66,6 +66,41 @@ export default DS.RESTAdapter.extend(
 		this.autoBatch = Batch.create({container: this.container, maxSize: 20, interval: 5});
 	},
 
+	host: function()
+	{
+		return 'http://localhost:4200';
+	}.property(),
+
+	debug: function()
+	{
+		return false;
+	}.property(),
+
+	debugUrlParam: function()
+	{
+		return '_debug';
+	}.property(),
+
+	version: function()
+	{
+		return '1';
+	}.property(),
+
+	versionUrlParam: function()
+	{
+		return '_version';
+	}.property(),
+
+	shouldSendVersion: function()
+	{
+		return true;
+	}.property(),
+
+	shouldReloadAll: function()
+	{
+		return true;
+	},
+
 	/**
 	 * prototype function must be overrode to return 
 	 * app authentication.
@@ -117,37 +152,21 @@ export default DS.RESTAdapter.extend(
 
 	buildURL: function(modelName, id, snapshot, requestType, query)
 	{
-		assert('You must define [ENV.APP.API_VERSION] in config/environment.js', !isNone(Configuration.apiVersion));
-
 		var url = this._super(modelName, id, snapshot, requestType, query);
 
-		if(Configuration.apiVersion >= 3.2)
+		if(this.get('shouldSendVersion'))
 		{
-			url += '?_version=' + Configuration.apiVersion;
-		}
-		else
-		{
-			url += '?version=' + Configuration.apiVersion;
+			url = url + '?' + this.get('versionUrlParam') + this.get('version');
 		}
 
 		// set debug flag
-		if(Configuration.debugMode)
+		if(this.get('debug'))
 		{
-			url += '&_debug=true';
+			url = url + '&_debug=' + this.get('debug');
 		}
 
 		return url;
 	},
-
-	shouldReloadAll: function()
-	{
-		return true;
-	},
-
-	host: function()
-	{
-		return Configuration.apiURL;
-	}.property(),
 
 	pathForType: function(type)
 	{
@@ -284,7 +303,7 @@ export default DS.RESTAdapter.extend(
 		
 		error = (error || (payload && !payload.success));
 
-		if(Configuration.debugMode && payload && payload.debug)
+		if(this.get('debug') && payload && payload.debug)
 		{
 			logger.warn("DEBUG API CALL FAILED: ", payload.debug);
 		}
