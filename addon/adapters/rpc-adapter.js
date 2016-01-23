@@ -3,7 +3,6 @@
  *
  */
 import Ember from 'ember';
-import Configuration from './../configuration';
 
 /**
  * `Library\RPC`
@@ -16,23 +15,6 @@ import Configuration from './../configuration';
  */
 var rpcClient = Ember.Object.extend(
 {
-	baseUrl: function()
-	{
-		return Configuration.apiURL;
-	}.property(),
-
-	args: function()
-	{
-		if(Configuration.apiVersion >= 3.2)
-		{
-			return '?_version=' + Configuration.apiVersion;
-		}
-		else
-		{
-			return '?version=' + Configuration.apiVersion;
-		}
-	}.property(),
-
 	url: '',
 
 	/**
@@ -43,6 +25,29 @@ var rpcClient = Ember.Object.extend(
 	 */
 	publicKey: null,
 	authUser: null,
+
+	/**
+	 * sets the api call headers for the authenticated user
+	 *
+	 * @private
+	 * @method headers
+	 */
+	headers: function()
+	{
+		var authUser = this.get('dataService.authKey');
+		var headers = null;
+
+		if(authUser.type === 10)
+		{
+			headers['Key-Authorization'] = authUser.key;
+		}
+		else if(authUser.type === 20)
+		{
+			headers['Authorization'] = 'Basic ' + authUser.key;
+		}
+
+		return headers;
+	}.property(),
 
 	/**
 	 * RPC fetch call
@@ -83,11 +88,17 @@ var rpcClient = Ember.Object.extend(
 	 */
 	ajaxUrl: function()
 	{
-		var url = this.get('baseUrl') + '/' + this.get('url') + this.get('args');
+		var url = this.get('dataService.host') + '/' + this.get('url');
 
-		if(Configuration.debugMode === true)
+		if(this.get('dataService.shouldSendVersion'))
 		{
-			url += '&_debug=true';
+			url = url + '?' + this.get('dataService.versionUrlParam') + '=' + this.get('dataService.version');
+		}
+
+		// set debug flag
+		if(this.get('dataService.debug'))
+		{
+			url = url + '&' + this.get('dataService.debugUrlParam') + '=true';
 		}
 
 		return url;
@@ -105,7 +116,6 @@ var rpcClient = Ember.Object.extend(
 	 */
 	ajaxOptions: function(method, params)
 	{
-		var _this = this;
 		var request = {};
 			request.method = method;
 			request.params = params;
@@ -119,19 +129,17 @@ var rpcClient = Ember.Object.extend(
 			xhr.type = "POST";
 			xhr.dataType = "json";
 
+
 		// set auth header if public key is set
-		if(!Ember.isNone(this.get('publicKey')) || !Ember.isNone(this.get('authUser')))
+		var headers = this.get('headers');
+		if(!Ember.isNone(headers))
 		{
 			xhr.beforeSend = function(request)
 			{
-				if(_this.get('publicKey'))
+				Ember.ArrayPolyfills.forEach.call(Ember.keys(headers), function(key)
 				{
-					request.setRequestHeader('Key-Authorization', _this.get('publicKey'));
-				}
-				else
-				{
-					request.setRequestHeader('Authorization', 'Basic ' + _this.get('authUser'));
-				}
+					request.setRequestHeader(key, headers[key]);
+				});
 			};
 		}
 

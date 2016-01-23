@@ -55,6 +55,8 @@ function _parseResponseHeaders(headerStr)
  */
 export default DS.RESTAdapter.extend(
 {
+	dataService: Ember.inject.service('busy-data'),
+
 	manualBatch: null,
 	autoBatch: null,
 	
@@ -68,59 +70,12 @@ export default DS.RESTAdapter.extend(
 
 	host: function()
 	{
-		return 'http://localhost:4200';
-	}.property(),
-
-	debug: function()
-	{
-		return false;
-	}.property(),
-
-	debugUrlParam: function()
-	{
-		return '_debug';
-	}.property(),
-
-	version: function()
-	{
-		return '1';
-	}.property(),
-
-	versionUrlParam: function()
-	{
-		return '_version';
-	}.property(),
-
-	shouldSendVersion: function()
-	{
-		return true;
+		return this.get('dataService.host');
 	}.property(),
 
 	shouldReloadAll: function()
 	{
 		return true;
-	},
-
-	/**
-	 * prototype function must be overrode to return 
-	 * app authentication.
-	 *
-	 * @public
-	 * @method authenticatedUser
-	 * @returns {object} must return and object with at least one of three keys "Key-Authorization", "Basic-Authorization", "Authorization"
-	 */
-	authenticatedUser: function()
-	{
-		var message = 'You must create an authenticatedUser ' + 
-			'function that returns an object with at least one of ' +
-			'the following keys: {' + 
-			'"Key-Authorization": <public api hash>, ' + 
-			'"Basic-Authorization": {"username": "<username>", "password": "<password>"}, ' + 
-			'"Authorization": <a `btoa(username:password)` hash>}';
-
-		assert(message, true);
-
-		return null;
 	},
 
 	/**
@@ -131,38 +86,34 @@ export default DS.RESTAdapter.extend(
 	 */
 	headers: function()
 	{
-		var authUser = this.authenticatedUser();
-		var headers = {};
+		var authUser = this.get('dataService.authKey');
+		var headers = null;
 
-		if(authUser['Key-Authorization'] !== undefined)
+		if(authUser.type === 10)
 		{
-			headers['Key-Authorization'] = authUser['Key-Authorization'];
+			headers['Key-Authorization'] = authUser.key;
 		}
-		else if(authUser['Authorization'] !== undefined)
+		else if(authUser.type === 20)
 		{
-			headers.Authorization = 'Basic ' + authUser['Authorization'];
-		}
-		else if(authUser['Basic-Authorization'] !== undefined)
-		{
-			headers.Authorization = 'Basic ' + btoa(authUser['Basic-Authorization'].username + ':' + authUser['Basic-Authorization'].password);
+			headers['Authorization'] = 'Basic ' + authUser.key;
 		}
 
 		return headers;
-	}.property(),
+	}.property('dataService.authKey'),
 
 	buildURL: function(modelName, id, snapshot, requestType, query)
 	{
 		var url = this._super(modelName, id, snapshot, requestType, query);
 
-		if(this.get('shouldSendVersion'))
+		if(this.get('dataService.shouldSendVersion'))
 		{
-			url = url + '?' + this.get('versionUrlParam') + this.get('version');
+			url = url + '?' + this.get('dataService.versionUrlParam') + '=' + this.get('dataService.version');
 		}
 
 		// set debug flag
-		if(this.get('debug'))
+		if(this.get('dataService.debug'))
 		{
-			url = url + '&_debug=' + this.get('debug');
+			url = url + '&' + this.get('dataService.debugUrlParam') + '=true';
 		}
 
 		return url;
@@ -289,7 +240,7 @@ export default DS.RESTAdapter.extend(
 		
 		if(status === 401 || (typeof payload === 'object' && payload.statusCode === 401))
 		{
-			this.get('session').invalidate('authenticator:basic', {});
+			this.get('dataService').invalidateSession();
 
 			success = false;
 		}
@@ -303,14 +254,14 @@ export default DS.RESTAdapter.extend(
 		
 		error = (error || (payload && !payload.success));
 
-		if(this.get('debug') && payload && payload.debug)
+		if(this.get('dataService.debug') && payload && payload.debug)
 		{
 			logger.warn("DEBUG API CALL FAILED: ", payload.debug);
 		}
 
 		if(status === 401 || (typeof payload === 'object' && payload.statusCode === 401))
 		{
-			this.get('session').invalidate('authenticator:basic', {});
+			this.get('dataService').invalidateSession();
 
 			error = true;
 		}
@@ -523,13 +474,13 @@ export default DS.RESTAdapter.extend(
 			delete hash.data.auth_header;
 		}
 
-		if (headers !== undefined)
+		if(!isNone(headers))
 		{
-			hash.beforeSend = function (xhr)
+			hash.beforeSend = function (request)
 			{
 				ArrayPolyfills.forEach.call(keys(headers), function(key)
 				{
-					xhr.setRequestHeader(key, headers[key]);
+					request.setRequestHeader(key, headers[key]);
 				});
 			};
 		}

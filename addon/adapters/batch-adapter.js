@@ -12,9 +12,6 @@ export default Ember.Object.extend(
 {
 	session: Ember.inject.service('session'),
 
-	publicKey: null,
-	authUser: null,
-
 	requests: null,
 	response: null,
 	hashMap: null,
@@ -22,6 +19,7 @@ export default Ember.Object.extend(
 
 	maxSize: 0,
 	interval: 0,
+	debug: false,
 
 	init: function()
 	{
@@ -36,6 +34,29 @@ export default Ember.Object.extend(
 			this._send();
 		}
 	},
+
+	/**
+	 * sets the api call headers for the authenticated user
+	 *
+	 * @private
+	 * @method headers
+	 */
+	headers: function()
+	{
+		var authUser = this.get('dataService.authKey');
+		var headers = null;
+
+		if(authUser.type === 10)
+		{
+			headers['Key-Authorization'] = authUser.key;
+		}
+		else if(authUser.type === 20)
+		{
+			headers['Authorization'] = 'Basic ' + authUser.key;
+		}
+
+		return headers;
+	}.property('dataService.authKey'),
 
 	send: function(hash)
 	{
@@ -192,19 +213,7 @@ export default Ember.Object.extend(
 
 	initializeRequest: function()
 	{
-		var authUser = this.get('session.session.authenticated');
-		var batchRequest = rpc.create('batch');
-
-		if(!Ember.isNone(authUser.public_key))
-		{
-			batchRequest.set('publicKey', authUser.public_key); 
-		}
-		else
-		{
-			batchRequest.set('authUser', authUser.auth_hash);
-		}
-
-		return batchRequest;
+		return rpc.create('batch');
 	},
 
 	/**
@@ -264,19 +273,15 @@ export default Ember.Object.extend(
 		};
 		
 		// set auth header if public key is set
-		var authUser = this.get('session.session.authenticated');
-		if(!Ember.isNone(authUser.public_key) || !Ember.isNone(authUser.auth_hash))
+		var headers = this.get('headers');
+		if(!Ember.isNone(headers))
 		{
 			xhr.beforeSend = function(request)
 			{
-				if(authUser.public_key)
+				Ember.ArrayPolyfills.forEach.call(Ember.keys(headers), function(key)
 				{
-					request.setRequestHeader('Key-Authorization', authUser.public_key);
-				}
-				else
-				{
-					request.setRequestHeader('Authorization', 'Basic ' + authUser.auth_hash);
-				}
+					request.setRequestHeader(key, headers[key]);
+				});
 			};
 		}
 
@@ -330,7 +335,7 @@ export default Ember.Object.extend(
 	{
 		if(err.status === 401)
 		{
-			this.get('session').invalidate('authenticator:basic', {});
+			this.get('dataService').invalidateSession();
 		}
 		else
 		{
