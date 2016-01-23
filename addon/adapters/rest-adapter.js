@@ -10,8 +10,6 @@ import Batch from './batch-adapter';
 const Ember$ = Ember.$;
 const { get, isNone, RSVP, run, _String, keys, ArrayPolyfills, logger, assert } = Ember;
 
-const BatchAdapter = Batch.extend();
-const AutoBatchAdapter = Batch.extend();
 
 /**
  * EmptyObject Class
@@ -57,6 +55,17 @@ function _parseResponseHeaders(headerStr)
  */
 export default DS.RESTAdapter.extend(
 {
+	manualBatch: null,
+	autoBatch: null,
+	
+	init: function()
+	{
+		this._super();
+
+		this.manualBatch = Batch.create({container: this.container});
+		this.autoBatch = Batch.create({container: this.container, maxSize: 20, interval: 5});
+	},
+
 	/**
 	 * prototype function must be overrode to return 
 	 * app authentication.
@@ -439,11 +448,11 @@ export default DS.RESTAdapter.extend(
 
 			if(isBatch && isManual)
 			{
-				BatchAdapter.send(hash);
+				adapter.manualBatch.send(hash);
 			}
 			else if(isBatch)
 			{
-				AutoBatchAdapter.send(hash);
+				adapter.autoBatch.send(hash);
 			}
 			else
 			{
