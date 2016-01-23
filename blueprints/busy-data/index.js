@@ -13,6 +13,10 @@ module.exports = {
 	//    foo: options.entity.options.foo
 	//  };
 	//}
+	
+	normalizeEntityName: function()
+	{
+	},
 
 	afterInstall: function(/*options*/) 
 	{
