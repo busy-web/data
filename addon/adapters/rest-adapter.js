@@ -7,10 +7,6 @@ import DS from 'ember-data';
 import Configuration from './../configuration';
 import Batch from './batch-adapter';
 
-const Ember$ = Ember.$;
-const { get, isNone, RSVP, run, _String, keys, ArrayPolyfills, logger, assert } = Ember;
-
-
 /**
  * EmptyObject Class
  *
@@ -121,20 +117,20 @@ export default DS.RESTAdapter.extend(
 
 	pathForType: function(type)
 	{
-		return _String.dasherize(type);
+		return Ember.String.dasherize(type);
 	},
 
 	defaultQuery: function(query)
 	{
 		query = query || {};
 
-		assert("store.query was called with an id. store.findRecord should be used instead.", typeof query !== 'string');
+		Ember.assert("store.query was called with an id. store.findRecord should be used instead.", typeof query !== 'string');
 
-		if(isNone(get(query, 'deleted_on')))
+		if(Ember.isNone(Ember.get(query, 'deleted_on')))
 		{
 			query.deleted_on = '_-NULL-_';
 		}
-		else if(get(query, 'deleted_on') === '_-DISABLE-_')
+		else if(Ember.get(query, 'deleted_on') === '_-DISABLE-_')
 		{
 			delete query.deleted_on;
 		}
@@ -181,13 +177,13 @@ export default DS.RESTAdapter.extend(
 //		{
 //			var next = data.next;
 //
-//			if(!isNone(next) && !isEmpty(next))
+//			if(!Ember.isNone(next) && !Ember.isEmpty(next))
 //			{
 //				query.page = query.page + 1;
 //
 //				return _this.findAll(store, type, sinceToken, model, query).then(function(moreData)
 //				{
-//					if(!isNone(moreData))
+//					if(!Ember.isNone(moreData))
 //					{
 //						data.data.pushObjects(moreData);
 //					}
@@ -213,7 +209,7 @@ export default DS.RESTAdapter.extend(
 	handleResponse: function(status, headers, payload)
 	{
 		var result = payload;
-		if(isNone(payload.success))
+		if(Ember.isNone(payload.success))
 		{
 			result = payload.result;
 		}
@@ -256,7 +252,7 @@ export default DS.RESTAdapter.extend(
 
 		if(this.get('dataService.debug') && payload && payload.debug)
 		{
-			logger.warn("DEBUG API CALL FAILED: ", payload.debug);
+			Ember.Logger.warn("DEBUG API CALL FAILED: ", payload.debug);
 		}
 
 		if(status === 401 || (typeof payload === 'object' && payload.statusCode === 401))
@@ -366,7 +362,7 @@ export default DS.RESTAdapter.extend(
 		var adapter = this;
 		var key = 'DS: RESTAdapter#ajax ' + type + ' to ' + url;
 
-		return new RSVP.Promise(function(resolve, reject)
+		return new Ember.RSVP.Promise(function(resolve, reject)
 		{
 			var hash = adapter.ajaxOptions(url, type, options);
 
@@ -380,11 +376,11 @@ export default DS.RESTAdapter.extend(
 
 				if (response instanceof DS.AdapterError) 
 				{
-					run(null, reject, response);
+					Ember.run(null, reject, response);
 				}
 				else 
 				{
-					run(null, resolve, response);
+					Ember.run(null, resolve, response);
 				}
 			};
 
@@ -413,7 +409,7 @@ export default DS.RESTAdapter.extend(
 					}
 				}
 			
-				run(null, reject, error);
+				Ember.run(null, reject, error);
 			};
 
 			if(isBatch && isManual)
@@ -426,7 +422,7 @@ export default DS.RESTAdapter.extend(
 			}
 			else
 			{
-				Ember$.ajax(hash);
+				Ember.$.ajax(hash);
 			}
 		}, key);
 	},
@@ -461,24 +457,24 @@ export default DS.RESTAdapter.extend(
 		// if _fileObject is set then set up a file upload
 		// else if type is post set up POST content and data object
 		// otherwise the data and content are left alone
-		if(!isNone(get(hash, 'data._fileObject')))
+		if(!Ember.isNone(Ember.get(hash, 'data._fileObject')))
 		{
 			this.setupUpload(hash);
 		}
 
 		// setup special headers like auth
-		var headers = get(this, 'headers');
-		if(!isNone(get(hash, 'data.auth_header')))
+		var headers = Ember.get(this, 'headers');
+		if(!Ember.isNone(Ember.get(hash, 'data.auth_header')))
 		{
 			headers = hash.data.auth_header;
 			delete hash.data.auth_header;
 		}
 
-		if(!isNone(headers))
+		if(!Ember.isNone(headers))
 		{
 			hash.beforeSend = function (request)
 			{
-				ArrayPolyfills.forEach.call(keys(headers), function(key)
+				Ember.ArrayPolyfills.forEach.call(Ember.keys(headers), function(key)
 				{
 					request.setRequestHeader(key, headers[key]);
 				});
@@ -528,10 +524,10 @@ export default DS.RESTAdapter.extend(
 		// upload progress
 		hash.xhr = function()
 		{
-			var xhr = Ember$.ajaxSettings.xhr();
+			var xhr = Ember.$.ajaxSettings.xhr();
 			xhr.upload.onprogress = function(e)
 			{
-				run.later(this, function()
+				Ember.run.later(this, function()
 				{
 					fileObject.uploadProgress(e);
 				}, 100);
@@ -552,7 +548,7 @@ export default DS.RESTAdapter.extend(
 	{
 		var formData = new FormData();
 
-		Ember$.each(data, function(key, val)
+		Ember.$.each(data, function(key, val)
 		{
 			if(data.hasOwnProperty(key))
 			{
