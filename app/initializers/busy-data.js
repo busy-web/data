@@ -18,7 +18,7 @@ export default {
 		// load busy-data config options
 		Configuration.load(config);
 
-		conole.log('busy-data initializer', config, registry);
+		console.log('busy-data initializer', config, registry);
 
 		DS.Model.reopen(
 		{
