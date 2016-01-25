@@ -15,6 +15,8 @@ import Ember from 'ember';
  */
 var rpcClient = Ember.Object.extend(
 {
+	baseURL: null,
+
 	url: '',
 
 	/**
@@ -37,13 +39,13 @@ var rpcClient = Ember.Object.extend(
 		var authUser = this.get('dataService.authKey');
 		var headers = null;
 
-		if(authUser.type === 10)
+		if(authUser && authUser.type === 10)
 		{
-			headers['Key-Authorization'] = authUser.key;
+			headers = {'Key-Authorization': authUser.key};
 		}
-		else if(authUser.type === 20)
+		else if(authUser && authUser.type === 20)
 		{
-			headers['Authorization'] = 'Basic ' + authUser.key;
+			headers = {'Authorization': 'Basic ' + authUser.key};
 		}
 
 		return headers;
@@ -88,7 +90,13 @@ var rpcClient = Ember.Object.extend(
 	 */
 	ajaxUrl: function()
 	{
-		var url = this.get('dataService.host') + '/' + this.get('url');
+		var url = this.get('dataService.host');
+		if(!Ember.isNone(this.get('baseURL')))
+		{
+			url = this.get('baseURL');
+		}
+			
+		url = url + '/' + this.get('url');
 
 		if(this.get('dataService.shouldSendVersion'))
 		{

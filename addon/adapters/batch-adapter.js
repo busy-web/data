@@ -4,13 +4,10 @@
  */
 import Ember from 'ember';
 import rpc from './rpc-adapter';
-import Configuration from './../configuration';
-
-const Ember$ = Ember.$;
 
 export default Ember.Object.extend(
 {
-	session: Ember.inject.service('session'),
+	dataService: Ember.inject.service('busy-data'),
 
 	requests: null,
 	response: null,
@@ -46,13 +43,13 @@ export default Ember.Object.extend(
 		var authUser = this.get('dataService.authKey');
 		var headers = null;
 
-		if(authUser.type === 10)
+		if(authUser && authUser.type === 10)
 		{
-			headers['Key-Authorization'] = authUser.key;
+			headers = {'Key-Authorization': authUser.key};
 		}
-		else if(authUser.type === 20)
+		else if(authUser && authUser.type === 20)
 		{
-			headers['Authorization'] = 'Basic ' + authUser.key;
+			headers = {'Authorization': 'Basic ' + authUser.key};
 		}
 
 		return headers;
@@ -135,9 +132,10 @@ export default Ember.Object.extend(
 
 	prepareRequests: function(requests)
 	{
+		var _this = this;
 		var req = {};
 
-		Ember$.each(requests, function(key, val)
+		Ember.$.each(requests, function(key, val)
 		{
 			if(requests.hasOwnProperty(key) && key !== 'length')
 			{
@@ -147,18 +145,16 @@ export default Ember.Object.extend(
 					url: val.urlName,
 				};
 
-				if(Configuration.apiVersion >= 3.2)
+				// set version number
+				if(_this.get('dataService.shouldSendVersion'))
 				{
-					params._version = Configuration.apiVersion;
-				}
-				else
-				{
-					params.version = Configuration.apiVersion;
+					params[_this.get('dataService.versionUrlParam')] = _this.get('dataService.version');
 				}
 
-				if(Configuration.debugMode)
+				// set debug flag
+				if(_this.get('dataService.debug'))
 				{
-					params._debug = true;
+					params[_this.get('dataService.debugUrlParam')] = true;
 				}
 				
 				req[key] = params;
@@ -175,11 +171,11 @@ export default Ember.Object.extend(
 			if(this.get('length') === 1)
 			{
 				var obj = this.get('requests');
-				Ember$.each(obj, function(k, v) 
+				Ember.$.each(obj, function(k, v) 
 				{
 					if(obj.hasOwnProperty(k) && k !== 'length') 
 					{
-						Ember$.ajax(v.hash);
+						Ember.$.ajax(v.hash);
 					}
 				});
 			
@@ -225,21 +221,20 @@ export default Ember.Object.extend(
 	 */
 	ajaxUrl: function()
 	{
-		var url = Configuration.apiURL + '/batch?';
+		var url = this.get('dataService.host') + '/batch';
 		
-		if(Configuration.apiVersion >= 3.2)
+		if(this.get('dataService.shouldSendVersion'))
 		{
-			url += '_version=' + Configuration.apiVersion;
-		}
-		else
-		{
-			url += 'version=' + Configuration.apiVersion;
+			url = url + '?' + this.get('dataService.versionUrlParam') + '=' + this.get('dataService.version');
 		}
 
-		if(Configuration.debugMode === true)
+		// set debug flag
+		if(this.get('dataService.debug'))
 		{
-			url += '&_debug=true';
+			url = url + '&' + this.get('dataService.debugUrlParam') + '=true';
 		}
+
+		console.log('ajaxUrl', url);
 
 		return url;
 	},
@@ -285,7 +280,7 @@ export default Ember.Object.extend(
 			};
 		}
 
-		Ember$.ajax(xhr);
+		Ember.$.ajax(xhr);
 	},
 
 	dispatchResponse: function(key, response, responseHandlers, jqXHR)
@@ -294,7 +289,7 @@ export default Ember.Object.extend(
 		{
 			// get this response's handlers
 			var handlers = responseHandlers[key];
-			Ember$.each(handlers, function(index, handler)
+			Ember.$.each(handlers, function(index, handler)
 			{
 				if(handlers.hasOwnProperty(index))
 				{
@@ -317,7 +312,7 @@ export default Ember.Object.extend(
 		{
 			// dispatch each respsonse
 			var results = response.data.results;
-			Ember$.each(results, function(key, val)
+			Ember.$.each(results, function(key, val)
 			{
 				if(results.hasOwnProperty(key))
 				{

@@ -5,18 +5,15 @@
 import Ember from 'ember';
 
 const kDefaults = {
-	apiVersion: 0,
-	apiURL: '',
+	API_VERSION: 0,
+	API_URL: '',
+	BATCH_GET: true,
+	BATCH_POST: false,
+	BATCH_PATCH: false,
+	BATCH_DELETE: false,
+	BATCH_PUT: false,
+	DEBUG_MODE: false,
 	usePatchInPlaceOfPut: false,
-	batchGet: true,
-	batchPOST: false,
-	batchPATCH: false,
-	batchDELETE: false,
-	batchPUT: false,
-	debugMode: false,
-	publicHashKey: 'public-key-hash',
-	basicAuthHashKey: 'basic-auth-hash',
-	basicAuthKey: 'basic-auth',
 };
 
 export default {
@@ -24,28 +21,23 @@ export default {
 	baseURL: null,
 
 	// api version
-	apiVersion: kDefaults.apiVersion,
-	apiURL: kDefaults.apiURL,
+	API_VERSION: kDefaults.apiVersion,
+	API_URL: kDefaults.apiURL,
 
 	// use patch api calls instead of put calls
 	usePatchInPlaceOfPut: kDefaults.usePatchInPlaceOfPut,
 
 	// batch settings true if the batch
 	// should try to batch calls of the specified type
-	batchGET: kDefaults.batchGET,
-	batchPOST: kDefaults.batchPOST,
-	batchPATCH: kDefaults.batchPATCH,
-	batchDELETE: kDefaults.batchDELETE,
-	batchPUT: kDefaults.batchPUT,
+	BATCH_GET: kDefaults.batchGET,
+	BATCH_POST: kDefaults.batchPOST,
+	BATCH_PATCH: kDefaults.batchPATCH,
+	BATCH_DELETE: kDefaults.batchDELETE,
+	BATCH_PUT: kDefaults.batchPUT,
 
 	// true to turn on debug mode
-	debugMode: kDefaults.debugMode,
+	DEBUG_MODE: kDefaults.debugMode,
 
-	// auth token keys for api headers
-	publicHashKey: kDefaults.publicKeyHash,
-	basicAuthHashKey: kDefaults.basicAuthHash,
-	basicAuthKey: kDefaults.basicAuth,
-	
 	/**
 	 * load initializer method
 	 *

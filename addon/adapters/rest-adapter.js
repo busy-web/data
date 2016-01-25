@@ -85,13 +85,13 @@ export default DS.RESTAdapter.extend(
 		var authUser = this.get('dataService.authKey');
 		var headers = null;
 
-		if(authUser.type === 10)
+		if(authUser && authUser.type === 10)
 		{
-			headers['Key-Authorization'] = authUser.key;
+			headers = {'Key-Authorization': authUser.key};
 		}
-		else if(authUser.type === 20)
+		else if(authUser && authUser.type === 20)
 		{
-			headers['Authorization'] = 'Basic ' + authUser.key;
+			headers = {'Authorization': 'Basic ' + authUser.key};
 		}
 
 		return headers;
@@ -337,7 +337,7 @@ export default DS.RESTAdapter.extend(
 
 	ajax: function(url, type, options)
 	{
-		var isBatch = Configuration.batchGET;
+		var isBatch = Configuration.BATCH_GET;
 		if(options && options.data && options.data.auth_header)
 		{
 			isBatch = false;

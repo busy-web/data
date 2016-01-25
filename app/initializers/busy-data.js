@@ -2,7 +2,7 @@
  * @module app/initializers
  *
  */
-import Ember from 'ember';
+//import Ember from 'ember';
 import DS from 'ember-data';
 import ENV from '../config/environment';
 import Configuration from 'busy-data/configuration';
@@ -10,15 +10,13 @@ import Configuration from 'busy-data/configuration';
 export default {
 	name: 'busy-data',
 
-	initialize: function(registry)
+	initialize: function(/*registry*/)
 	{
-		const config = ENV['busy-data'] || {};
+		const config = ENV.APP || {};
 			  config.baseURL = ENV.baseURL;
 
 		// load busy-data config options
 		Configuration.load(config);
-
-		console.log('busy-data initializer', config, registry);
 
 		DS.Model.reopen(
 		{

@@ -233,15 +233,15 @@ export default DS.Store.extend(
 	{
 		var client = this.rpc.create(type);
 
-		var authUser = this.get('session.session.authenticated');
-		if(authUser && authUser.public_key !== undefined)
-		{
-			client.set('publicKey', authUser.public_key);
-		}
-		else if(authUser && authUser.auth_hash !== undefined)
-		{
-			client.set('authUser', authUser.auth_hash);
-		}
+	//	var authUser = this.get('session.session.authenticated');
+	//	if(authUser && authUser.public_key !== undefined)
+	//	{
+	//		client.set('publicKey', authUser.public_key);
+	//	}
+	//	else if(authUser && authUser.auth_hash !== undefined)
+	//	{
+	//		client.set('authUser', authUser.auth_hash);
+	//	}
 
 		if(baseURL !== undefined)
 		{

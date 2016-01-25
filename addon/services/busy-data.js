@@ -3,9 +3,10 @@
  *
  */
 import Ember from 'ember';
+import Configuration from './../configuration';
 
 /**
- * `BusyData\BusyDataService`
+ * `BusyData\Service\BusyData`
  *
  * This class defines how the application will 
  * interface with an api.
@@ -15,14 +16,17 @@ import Ember from 'ember';
  */
 export default Ember.Service.extend(
 {
+	session: Ember.inject.service('session'),
+
 	host: function()
 	{
-		return 'http://localhost:4200';
+		console.log('config', Configuration);
+		return Configuration.API_URL;
 	}.property(),
 
 	debug: function()
 	{
-		return false;
+		return Configuration.DEBUG_MODE;
 	}.property(),
 
 	debugUrlParam: function()
@@ -32,7 +36,7 @@ export default Ember.Service.extend(
 
 	version: function()
 	{
-		return '1';
+		return Configuration.API_VERSION;
 	}.property(),
 
 	versionUrlParam: function()
@@ -42,12 +46,12 @@ export default Ember.Service.extend(
 
 	publicKey: function()
 	{
-		return null;
+		return this.get('session.session.authenticated.public_key');
 	}.property(),
 
 	basicKey: function()
 	{
-		return null;
+		return this.get('session.session.authenticated.auth_hash');
 	}.property(),
 
 	shouldSendVersion: function()
