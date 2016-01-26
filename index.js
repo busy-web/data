@@ -8,7 +8,8 @@ module.exports = {
 
 	config: function(env, config)
 	{
-		console.log(_config);
+		console.log('addon ', _config);
+		console.log('app', config);
 
 		return _config;
 	},
