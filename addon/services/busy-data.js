@@ -61,7 +61,8 @@ export default Ember.Service.extend(
 
 	invalidateSession: function()
 	{
-		Ember.warn("invalidateSession can be overridden to invalidate a user session based on a 401 statusCode");
+		this.get('session').invalidate('authenticator:basic', {});
+		//Ember.warn("invalidateSession can be overridden to invalidate a user session based on a 401 statusCode");
 	},
 
 	authKey: function()

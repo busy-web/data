@@ -14,6 +14,11 @@ const kDefaults = {
 	BATCH_PUT: false,
 	DEBUG_MODE: false,
 	usePatchInPlaceOfPut: false,
+
+	authMapKey: 'session:map',
+	switchKey: 'session:switch',
+	activeMemberKey: 'session:active',
+	simpleAuthKey: 'session:session', // has to be set in local-store.js
 };
 
 export default {
@@ -38,6 +43,11 @@ export default {
 	// true to turn on debug mode
 	DEBUG_MODE: kDefaults.debugMode,
 
+	authMapKey: kDefaults.authMapKey,
+	switchKey: kDefaults.switchKey,
+	activeMemberKey: kDefaults.activeMemberKey,
+	simpleAuthKey: kDefaults.simpleAuthKey,
+
 	/**
 	 * load initializer method
 	 *
@@ -47,10 +57,17 @@ export default {
 		let wrappedConfig = Ember.Object.create(config);
 		for(let property in this) 
 		{
-			if(this.hasOwnProperty(property) && Ember.typeOf(this[property]) !== 'function')
+			if(property === 'authMapKey' || property === 'switchKey' || property === 'activeMemberKey' || property === 'simpleAuthKey')
+			{
+				this[property] = config.modulePrefix + '-' + wrappedConfig.getWithDefault(property, kDefaults[property]);
+				console.log('setting', property, this[property]);
+			}
+			else if(this.hasOwnProperty(property) && Ember.typeOf(this[property]) !== 'function')
 			{
 				this[property] = wrappedConfig.getWithDefault(property, kDefaults[property]);
 			}
 		}
+
+		
 	}
 };
