@@ -1,18 +1,18 @@
 /* jshint node: true */
 'use strict';
 
-var _config = require('./config/environment');
+var _config = require('./config/environment')();
 
 module.exports = {
 	name: 'busy-data',
 
 	config: function(env, config)
 	{
-		console.log('env', env);
-		console.log('addon ', _config());
+		config['ember-simple-auth'] = _config['ember-simple-auth'];
+		
 		console.log('app', config);
 
-		return _config();
+		return config;
 	},
 
 	included: function(app)
