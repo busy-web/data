@@ -234,8 +234,6 @@ export default Ember.Object.extend(
 			url = url + '&' + this.get('dataService.debugUrlParam') + '=true';
 		}
 
-		console.log('ajaxUrl', url);
-
 		return url;
 	},
 

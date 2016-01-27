@@ -9,8 +9,6 @@ export default function setupAuth(registry)
 	registry.register('session-store:local-store', localStore);
 
 	// inject ember simple auth session-store
-//	console.log('inject simple auth setup', registry);
-//	debugger;
 //	inject.call(registry, 'session:main', 'store', 'session-store:application');
 
 	inject.call(registry, 'session:main', 'store', 'session-store:local-store');

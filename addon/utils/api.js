@@ -44,11 +44,8 @@ export default Ember.Object.extend(
 
 	ajaxOptions: function(url, data, type, context, host)
 	{
-		console.log('api: ', url);
 		// setup the url
 		url = this.addUrlParams(host + '/' + url.replace(/^\//, ''));
-
-		console.log('api: ', url);
 
 		var hash = {};
 			hash.url = url;

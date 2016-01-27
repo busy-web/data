@@ -20,7 +20,6 @@ export default Ember.Service.extend(
 
 	host: function()
 	{
-		console.log('config', Configuration);
 		return Configuration.API_URL;
 	}.property(),
 

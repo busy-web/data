@@ -6,12 +6,12 @@
 import DS from 'ember-data';
 import ENV from '../config/environment';
 import Configuration from 'busy-data/configuration';
-import setupAuth from 'busy-data/initializers/setup-auth';
+//import setupAuth from 'busy-data/initializers/setup-auth';
 
 export default {
 	name: 'busy-data',
 
-	initialize: function(registry)
+	initialize: function(/*registry*/)
 	{
 		const config = ENV.APP || {};
 			  config.baseURL = ENV.baseURL;
@@ -36,8 +36,6 @@ export default {
 			},
 		});
 
-		setupAuth(registry);
-
-		console.log(ENV);
+	//	setupAuth(registry);
 	}
 };

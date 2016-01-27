@@ -60,7 +60,6 @@ export default {
 			if(property === 'authMapKey' || property === 'switchKey' || property === 'activeMemberKey' || property === 'simpleAuthKey')
 			{
 				this[property] = config.modulePrefix + '-' + wrappedConfig.getWithDefault(property, kDefaults[property]);
-				console.log('setting', property, this[property]);
 			}
 			else if(this.hasOwnProperty(property) && Ember.typeOf(this[property]) !== 'function')
 			{

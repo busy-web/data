@@ -9,6 +9,5 @@ export default {
 
 	initialize: function(instance)
 	{
-		console.log('busy-data instance-initializer', instance);
 	}
 };
