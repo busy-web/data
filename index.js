@@ -6,13 +6,9 @@ var _config = require('./config/environment')();
 module.exports = {
 	name: 'busy-data',
 
-	config: function(env, config)
+	config: function(/*env, config*/)
 	{
-		config['ember-simple-auth'] = _config['ember-simple-auth'];
-		
-		console.log('app', config);
-
-		return config;
+		return _config;
 	},
 
 	included: function(app)
