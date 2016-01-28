@@ -53,6 +53,16 @@ export default Ember.Service.extend(
 		return this.get('session.session.authenticated.auth_hash');
 	}.property(),
 
+	publicKeyAuthString: function()
+	{
+		return 'Key-Authorization';
+	}.property(),
+
+	basicKeyAuthString: function()
+	{
+		return 'Authorization';
+	}.property(),
+
 	shouldSendVersion: function()
 	{
 		return true;
@@ -61,7 +71,6 @@ export default Ember.Service.extend(
 	invalidateSession: function()
 	{
 		this.get('session').invalidate('authenticator:basic', {});
-		//Ember.warn("invalidateSession can be overridden to invalidate a user session based on a 401 statusCode");
 	},
 
 	authKey: function()
@@ -74,7 +83,7 @@ export default Ember.Service.extend(
 		else if(!Ember.isNone(this.get('basicKey')))
 		{
 			auth = {type: 20, key: this.get('basicKey')};
-			if(auth.match(/:/))
+			if(this.get('basicKey').match(/:/))
 			{
 				auth = {type: 20, key: btoa(auth)};
 			}

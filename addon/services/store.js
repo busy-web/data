@@ -231,7 +231,7 @@ export default DS.Store.extend(
 	 */
 	rpcRequest: function(type, method, params, baseURL)
 	{
-		var client = this.rpc.create(type);
+		var client = this.rpc.create(type, this.container);
 
 	//	var authUser = this.get('session.session.authenticated');
 	//	if(authUser && authUser.public_key !== undefined)

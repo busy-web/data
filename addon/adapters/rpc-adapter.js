@@ -34,11 +34,13 @@ var rpcClient = Ember.Object.extend(
 
 		if(authUser && authUser.type === 10)
 		{
-			headers = {'Key-Authorization': authUser.key};
+			headers = {};
+			headers[this.get('dataService.publicKeyAuthString')] = authUser.key;
 		}
 		else if(authUser && authUser.type === 20)
 		{
-			headers = {'Authorization': 'Basic ' + authUser.key};
+			headers = {};
+			headers[this.get('dataService.basicKeyAuthString')] = 'Basic ' + authUser.key;
 		}
 
 		return headers;
@@ -193,12 +195,11 @@ rpcClient.reopenClass(
 {
 	_create: rpcClient.create,
 
-	create: function(url, token)
+	create: function(url, container)
 	{
-		var client = this._create();
+		var client = this._create({container: container});
 
 		client.set('url', url);
-		client.set('publicKey', token);
 
 		return client;
 	}
