@@ -15,18 +15,11 @@ import Ember from 'ember';
  */
 var rpcClient = Ember.Object.extend(
 {
+	dataService: Ember.inject.service('busy-data'),
+
 	baseURL: null,
 
 	url: '',
-
-	/**
-	 * stores the users publicKey for auth calls
-	 *
-	 * @property
-	 * @type string
-	 */
-	publicKey: null,
-	authUser: null,
 
 	/**
 	 * sets the api call headers for the authenticated user
