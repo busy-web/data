@@ -4,7 +4,6 @@
 module.exports = function(/* environment, appConfig */) {
   return { 
 	'ember-simple-auth': {
-		'store': 'session-store:local-store',
 		'crossOriginWhitelist': ['*']
 	}
   };
