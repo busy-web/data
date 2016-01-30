@@ -8,6 +8,7 @@ import rpc from 'busy-data/adapters/rpc-adapter';
 
 /***/
 const kPageSize = 100;
+const { getOwner } = Ember;
 
 /**
  * `Service/Store`
@@ -130,7 +131,7 @@ export default DS.Store.extend(
 	{
 		Ember.assert('a type must be passed to store.socket()', typeof modelType === 'string' && !Ember.isEmpty(modelType));
 
-		var socket = this.container.lookup('util:models.socket');
+		var socket = getOwner(this).lookup('util:models.socket');
 			socket.store = this;
 
 		if(typeof query === 'string')
@@ -147,7 +148,7 @@ export default DS.Store.extend(
 	{
 		Ember.assert('a type must be passed to store.filter()', typeof type === 'string' && !Ember.isEmpty(type));
 
-		var filter = this.container.lookup('util:models.filters.' + type);
+		var filter = getOwner(this).lookup('util:models.filters.' + type);
 		
 		Ember.assert('A Filter does not exist for ' + type.classify(), !Ember.isNone(filter));
 
@@ -160,7 +161,7 @@ export default DS.Store.extend(
 	{
 		Ember.assert('a type must be passed to store.dispatcher()', typeof type === 'string' && !Ember.isEmpty(type));
 
-		var dispatcher = this.container.lookup('util:models.dispatchers.' + type);
+		var dispatcher = getOwner(this).lookup('util:models.dispatchers.' + type);
 
 		Ember.assert('No Dispatcher was found for ' + type.classify(), !Ember.isNone(dispatcher));
 
@@ -173,7 +174,7 @@ export default DS.Store.extend(
 	{
 		var args = Array.prototype.slice.call(arguments, 1);
 
-		var manager = this.container.lookupFactory('util:models.managers.' + managerType);
+		var manager = getOwner(this).lookupFactory('util:models.managers.' + managerType);
 
 		Ember.assert('A manager does not exist for ' + managerType.classify(), !Ember.isNone(manager));
 
@@ -188,7 +189,7 @@ export default DS.Store.extend(
 	{
 		var args = Array.prototype.slice.call(arguments, 1);
 
-		var _manager = this.container.lookupFactory('util:models.managers.' + managerType);
+		var _manager = getOwner(this).lookupFactory('util:models.managers.' + managerType);
 
 		Ember.assert('A manager does not exist for ' + managerType.classify(), !Ember.isNone(_manager));
 
@@ -202,7 +203,7 @@ export default DS.Store.extend(
 		{
 			// get the csv export util
 			var filename = manager.get('filename') || managerType.underscore();
-			var exportCSV = _this.container.lookup('util:csv-export');
+			var exportCSV = getOwner(_this).lookup('util:csv-export');
 		
 			// get the dataMap for mapping data from this
 			// manager to the csv format.
@@ -231,7 +232,7 @@ export default DS.Store.extend(
 	 */
 	rpcRequest: function(type, method, params, baseURL)
 	{
-		var client = this.rpc.create(type, this.container);
+		var client = this.rpc.create(type, getOwner(this));
 
 	//	var authUser = this.get('session.session.authenticated');
 	//	if(authUser && authUser.public_key !== undefined)
@@ -264,7 +265,7 @@ export default DS.Store.extend(
 
         Ember.assert('Passing classes to store methods has been removed. Please pass a dasherized string instead of ' + Ember.inspect(type), typeof type === 'string');
 
-		var client = this.container.lookup('rpc:clients.' + type);
+		var client = getOwner(this).lookup('rpc:clients.' + type);
 	
 		Ember.assert('No RPC Client was found for ' + type.classify(), !Ember.isNone(client));
 		
@@ -385,7 +386,7 @@ export default DS.Store.extend(
 		Ember.assert('modelType must be an rpc model type to use rpcModelFor', this.isValidRPC(modelType));
 
 		var modelName = modelType.split('.')[1];
-		var factory = this.container.lookupFactory('rpc:models.' + modelName);
+		var factory = getOwner(this).lookupFactory('rpc:models.' + modelName);
 
 		Ember.assert('No RPC Model was found for ' + modelName, !Ember.isNone(factory));
 

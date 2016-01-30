@@ -7,6 +7,8 @@ import DS from 'ember-data';
 import Configuration from './../configuration';
 import Batch from './batch-adapter';
 
+const { getOwner } = Ember;
+
 /**
  * EmptyObject Class
  *
@@ -60,8 +62,8 @@ export default DS.RESTAdapter.extend(
 	{
 		this._super();
 
-		this.manualBatch = Batch.create({container: this.container});
-		this.autoBatch = Batch.create({container: this.container, maxSize: 20, interval: 5});
+		this.manualBatch = Batch.create({container: getOwner(this)});
+		this.autoBatch = Batch.create({container: getOwner(this), maxSize: 20, interval: 5});
 	},
 
 	host: function()
@@ -476,7 +478,7 @@ export default DS.RESTAdapter.extend(
 		{
 			hash.beforeSend = function (request)
 			{
-				Ember.ArrayPolyfills.forEach.call(Ember.keys(headers), function(key)
+				Object.keys(headers).forEach(function(key)
 				{
 					request.setRequestHeader(key, headers[key]);
 				});

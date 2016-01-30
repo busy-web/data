@@ -139,7 +139,7 @@ var rpcClient = Ember.Object.extend(
 		{
 			xhr.beforeSend = function(request)
 			{
-				Ember.ArrayPolyfills.forEach.call(Ember.keys(headers), function(key)
+				Object.keys(headers).forEach(function(key)
 				{
 					request.setRequestHeader(key, headers[key]);
 				});

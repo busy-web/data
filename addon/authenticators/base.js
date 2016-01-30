@@ -5,6 +5,8 @@
 import Ember from 'ember';
 import Base from 'ember-simple-auth/authenticators/base';
 
+const { getOwner } = Ember;
+
 export default Base.extend(
 {
 	dataService: Ember.inject.service('busy-data'),
@@ -158,7 +160,7 @@ export default Base.extend(
 	invalidate: function(session)
 	{
 		var auth = this;
-		var store = this.container.lookup('session-store:application');
+		var store = getOwner(this).lookup('session-store:application');
 			store.clear();
 
 		return new Ember.RSVP.Promise(function(resolve)
