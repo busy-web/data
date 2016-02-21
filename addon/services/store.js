@@ -174,7 +174,7 @@ export default DS.Store.extend(
 	{
 		var args = Array.prototype.slice.call(arguments, 1);
 
-		var manager = getOwner(this).lookupFactory('util:models.managers.' + managerType);
+		var manager = getOwner(this)._lookupFactory('util:models.managers.' + managerType);
 
 		Ember.assert('A manager does not exist for ' + managerType.classify(), !Ember.isNone(manager));
 
@@ -189,7 +189,7 @@ export default DS.Store.extend(
 	{
 		var args = Array.prototype.slice.call(arguments, 1);
 
-		var _manager = getOwner(this).lookupFactory('util:models.managers.' + managerType);
+		var _manager = getOwner(this)._lookupFactory('util:models.managers.' + managerType);
 
 		Ember.assert('A manager does not exist for ' + managerType.classify(), !Ember.isNone(_manager));
 
@@ -386,7 +386,7 @@ export default DS.Store.extend(
 		Ember.assert('modelType must be an rpc model type to use rpcModelFor', this.isValidRPC(modelType));
 
 		var modelName = modelType.split('.')[1];
-		var factory = getOwner(this).lookupFactory('rpc:models.' + modelName);
+		var factory = getOwner(this)._lookupFactory('rpc:models.' + modelName);
 
 		Ember.assert('No RPC Model was found for ' + modelName, !Ember.isNone(factory));
 

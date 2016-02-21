@@ -5,9 +5,6 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import Configuration from './../configuration';
-import Batch from './batch-adapter';
-
-const { getOwner } = Ember;
 
 /**
  * EmptyObject Class
@@ -54,17 +51,6 @@ function _parseResponseHeaders(headerStr)
 export default DS.RESTAdapter.extend(
 {
 	dataService: Ember.inject.service('busy-data'),
-
-	manualBatch: null,
-	autoBatch: null,
-	
-	init: function()
-	{
-		this._super();
-
-		this.manualBatch = Batch.create({container: getOwner(this)});
-		this.autoBatch = Batch.create({container: getOwner(this), maxSize: 20, interval: 5});
-	},
 
 	host: function()
 	{
@@ -418,11 +404,11 @@ export default DS.RESTAdapter.extend(
 
 			if(isBatch && isManual)
 			{
-				adapter.manualBatch.send(hash);
+				adapter.get('dataService.manualBatch').send(hash);
 			}
 			else if(isBatch)
 			{
-				adapter.autoBatch.send(hash);
+				adapter.get('dataService.autoBatch').send(hash);
 			}
 			else
 			{

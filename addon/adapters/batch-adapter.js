@@ -16,6 +16,7 @@ export default Ember.Object.extend(
 
 	maxSize: 0,
 	interval: 0,
+	originalInterval: 0,
 	debug: false,
 
 	init: function()
@@ -26,10 +27,16 @@ export default Ember.Object.extend(
 		this.set('response', {});
 		this.set('hashMap', {});
 
-		if(this.get('interval') > 0)
+		if(typeof this.get('interval') !== 'number' || this.get('interval') < 0)
 		{
-			this._send();
+			this.set('interval', 0);
 		}
+		else
+		{
+			this.set('originalInterval', this.get('interval'));
+		}
+			
+		this._send();
 	},
 
 	/**
@@ -59,6 +66,15 @@ export default Ember.Object.extend(
 
 	send: function(hash)
 	{
+		if(this.get('interval') > 0)
+		{
+			this.set('interval', this.get('originalInterval'));
+			Ember.run.later(this, function()
+			{
+				this._send();
+			}, this.get('interval'));
+		}
+
 		// create a checksum of the hash
 		var hashKey = this.checksum(hash);
 
@@ -188,11 +204,21 @@ export default Ember.Object.extend(
 				this.commit();
 			}
 		}
-
-		Ember.run.later(this, function()
+		else
 		{
-			this._send();
-		}, this.get('interval'));
+			if(this.get('interval') < 60000)
+			{
+				this.set('interval', this.get('interval')*2);
+			}
+		}
+
+		if(this.get('interval') > 0)
+		{
+			Ember.run.later(this, function()
+			{
+				this._send();
+			}, this.get('interval'));
+		}
 	},
 
 	commit: function()

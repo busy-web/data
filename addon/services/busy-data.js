@@ -17,6 +17,17 @@ import Configuration from './../configuration';
 export default Ember.Service.extend(
 {
 	session: Ember.inject.service('session'),
+	
+	autoBatch: null,
+	manualBatch: null,
+
+	init: function()
+	{
+		this._super();
+
+		this.manualBatch = Ember.getOwner(this).lookup('adapter:batch-adapter');
+		this.autoBatch = Ember.getOwner(this)._lookupFactory('adapter:batch-adapter').create({maxSize: 20, interval: 5});
+	},
 
 	host: function()
 	{
