@@ -197,11 +197,7 @@ rpcClient.reopenClass(
 
 	create: function(url, container)
 	{
-		var client = this._create({container: container});
-
-		client.set('url', url);
-
-		return client;
+		return this._create(container.ownerInjection(), {url: url});
 	}
 });
 
