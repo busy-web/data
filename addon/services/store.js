@@ -242,7 +242,7 @@ export default DS.Store.extend(
 
 		if(baseURL !== undefined)
 		{
-			client.set('baseUrl', baseURL);
+			client.set('baseURL', baseURL);
 		}
 
 		return client.call(method, params);
