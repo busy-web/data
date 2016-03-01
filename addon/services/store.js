@@ -136,7 +136,8 @@ export default DS.Store.extend(
 	{
 		Ember.assert('a type must be passed to store.socket()', typeof modelType === 'string' && !Ember.isEmpty(modelType));
 
-		var socket = getOwner(this).lookup('util:models.socket');
+		var owner = getOwner(this);
+		var socket = owner._lookupFactory('util:models.socket').create(owner.ownerInjection());
 			socket.store = this;
 
 		if(typeof query === 'string')
