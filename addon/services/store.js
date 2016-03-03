@@ -334,21 +334,17 @@ export default DS.Store.extend(
 			promise = _guard(promise, _bind(isAlive, store));
 
 			return promise.then(function (adapterPayload) {
-				var records;
-				
-				store._adapterRun(function () {
-					let normalizeResponse = serializer.normalizeResponse(store, typeClass, adapterPayload.result, null, 'rpcQuery');
+				var records, payload;
 
-					if(normalizeResponse.meta) {
-						store._setMetadataForRpc(typeClass.modelName, normalizeResponse.meta);
-					}
+				store._adapterRun(function () {
+					payload = serializer.normalizeResponse(store, typeClass, adapterPayload.result, null, 'rpcQuery');
 
 					//TODO Optimize
-					records = store.push(normalizeResponse);
+					records = store.push(payload);
 				});
 
-				recordArray.loadRecords(records);
-
+				recordArray.loadRecords(records, payload);
+				
 				return recordArray;
 			}, null, "DS: Extract payload of rpcQuery " + typeClass);
 		};
