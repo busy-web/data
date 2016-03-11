@@ -62,6 +62,16 @@ export default DS.Store.extend(
 		});
 	},
 
+	queryRecord: function(modelType, query)
+	{
+		return this.query(modelType, query).then(function(data)
+		{
+			Ember.assert('queryRecord expects at most one model to be returned', data.get('length') <= 1);
+
+			return data.objectAt(0);
+		});
+	},
+
 	findRecord: function(modelType, value)
 	{
 		var query = {};
@@ -110,26 +120,52 @@ export default DS.Store.extend(
 		query._in = {};
 		query._in[key] = sendValues;
 
-
 		return this.findAll(modelType, query).then(function(models)
 		{
 			if(!Ember.isEmpty(values))
 			{
-				return manager.findWhereIn(modelType, key, values).then(function(moreModels)
+				return manager.findWhereIn(modelType, key, values, query).then(function(moreModels)
 				{
 					if(!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content')))
 					{
 						models.pushObjects(moreModels.get('content'));
 					}
 
-					return models;
+					return models; //modemanager._filterByQuery(models, query);
 				});
 			}
 			else
 			{
-				return models;
+				return models; //manager._filterByQuery(models, query);
 			}
 		});
+	},
+
+	_filterByQuery: function(models, query)
+	{
+		var excludeKeys = ['_in', '_desc', '_asc', '_lte', '_gte', '_lt', '_gt', 'page', 'page_size'];
+
+		for(var key in query)
+		{
+			if(query.hasOwnProperty(key) && excludeKeys.indexOf(key) === -1)
+			{
+				var property = Ember.String.camelize(key);
+				var param = query[key];
+					param = param === '_-NULL-_' ? null : param;
+
+				if(param === '!_-NULL-_')
+				{
+					var removeModels = models.filterBy(property, null);
+					models.removeObjects(removeModels);
+				}
+				else if(param !== '_-DISABLE-_')
+				{
+					models = models.filterBy(property, param);
+				}
+			}
+		}
+
+		return models;
 	},
 
 	socket: function(modelType, query)

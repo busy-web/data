@@ -112,7 +112,7 @@ export default DS.RESTAdapter.extend(
 
 	defaultQuery: function(query)
 	{
-		query = query || {};
+		query = this.copyQuery(query || {});
 
 		Ember.assert("store.query was called with an id. store.findRecord should be used instead.", typeof query !== 'string');
 
@@ -126,6 +126,19 @@ export default DS.RESTAdapter.extend(
 		}
 
 		return query;
+	},
+
+	copyQuery: function(query)
+	{
+		var nQuery = {};
+		for(var key in query)
+		{
+			if(query.hasOwnProperty(key))
+			{
+				nQuery[key] = query[key];
+			}
+		}
+		return nQuery;
 	},
 
 	query: function(store, type, query)
