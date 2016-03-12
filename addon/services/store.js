@@ -4,7 +4,8 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-//import rpc from 'busy-data/adapters/rpc-adapter';
+import CollectionManager from 'busy-data/collections/collection-manager';
+import RPCAdapter from 'busy-data/adapters/rpc-adapter';
 
 /***/
 const kPageSize = 100;
@@ -16,13 +17,6 @@ const { getOwner } = Ember;
  */
 export default DS.Store.extend(
 {
-	init: function()
-	{
-		this._super();
-
-		this.rpc = Ember.getOwner(this)._lookupFactory('adapter:rpc-adapter');
-	},
-
 	_maxPageSize: kPageSize,
 
 	generateUUID: function()
@@ -167,104 +161,15 @@ export default DS.Store.extend(
 
 		return models;
 	},
-
-	socket: function(modelType, query)
+	
+	getter: function()
 	{
-		Ember.assert('a type must be passed to store.socket()', typeof modelType === 'string' && !Ember.isEmpty(modelType));
+		var owner = Ember.getOwner(this);
 
-		var owner = getOwner(this);
-		var socket = owner._lookupFactory('util:models.socket').create(owner.ownerInjection());
-			socket.store = this;
-
-		if(typeof query === 'string')
-		{
-			return socket.findRecord(modelType, query);
-		}
-		else
-		{
-			return socket.query(modelType, query);
-		}
-	},
-
-	filter: function(type)
-	{
-		Ember.assert('a type must be passed to store.filter()', typeof type === 'string' && !Ember.isEmpty(type));
-
-		var filter = getOwner(this).lookup('util:models.filters.' + type);
-		
-		Ember.assert('A Filter does not exist for ' + type.classify(), !Ember.isNone(filter));
-
-		filter.store = this;
-
-		return filter;
-	},
-
-	dispatcher: function(type)
-	{
-		Ember.assert('a type must be passed to store.dispatcher()', typeof type === 'string' && !Ember.isEmpty(type));
-
-		var dispatcher = getOwner(this).lookup('util:models.dispatchers.' + type);
-
-		Ember.assert('No Dispatcher was found for ' + type.classify(), !Ember.isNone(dispatcher));
-
-		dispatcher.store = this;
-
-		return dispatcher;
-	},
-
-	manager: function(managerType)
-	{
-		var args = Array.prototype.slice.call(arguments, 1);
-		var owner = getOwner(this);
-
-		var manager = owner._lookupFactory('util:models.managers.' + managerType);
-
-		Ember.assert('A manager does not exist for ' + managerType.classify(), !Ember.isNone(manager));
-
-		args.unshift(this);
-
-		manager.typeName = managerType;
-
-		return manager.fetch.apply(manager, args);
-	},
-
-	exportCSV: function(managerType)
-	{
-		var args = Array.prototype.slice.call(arguments, 1);
-		var owner = getOwner(this);
-
-		var _manager = owner._lookupFactory('util:models.managers.' + managerType);
-
-		Ember.assert('A manager does not exist for ' + managerType.classify(), !Ember.isNone(_manager));
-
-		_manager.typeName = managerType;
-
-		var manager = _manager._create(owner.ownerInjection(), {content: Ember.A()});
-			manager.store = this;
-
-		return manager._fetch.apply(manager, args).then(function(data)
-		{
-			// get the csv export util
-			var filename = manager.get('filename') || managerType.underscore();
-			var exportCSV = owner.lookup('util:csv-export');
-		
-			// get the dataMap for mapping data from this
-			// manager to the csv format.
-			var dataMap = manager.get('dataMap');
-		
-			Ember.assert('To export a manager to a csv, the manager must provide a dataMap', !Ember.isNone(dataMap));
-
-			// set the datamap
-			exportCSV.setDataMap(dataMap);
-			
-			// get the data from the ProjectParser and pass it
-			// to exportCSV.setData
-			exportCSV.setData(data.getSorted());
-
-			// call generate on exportCSV class and pass the file name.
-			exportCSV.generate(filename);
-
-			return true;
+		return CollectionManager.create(owner.ownerInjection(), {
+			store: this,
+			operations: Ember.A(),
+			__storedOperations: Ember.A()
 		});
 	},
 
@@ -275,7 +180,7 @@ export default DS.Store.extend(
 	 */
 	rpcRequest: function(type, method, params, baseURL)
 	{
-		var client = this.rpc.create(type, getOwner(this));
+		var client = RPCAdapter.create(getOwner(this).ownerInjection(), {url: type});
 
 		if(baseURL !== undefined)
 		{
@@ -298,12 +203,15 @@ export default DS.Store.extend(
 
         Ember.assert('Passing classes to store methods has been removed. Please pass a dasherized string instead of ' + Ember.inspect(type), typeof type === 'string');
 
-		var client = getOwner(this).lookup('rpc:clients.' + type);
+		var owner = getOwner(this);
+		var Client = owner._lookupFactory('rpc:clients.' + type);
 
-		Ember.assert('No RPC Client was found for ' + type.classify(), !Ember.isNone(client));
-		
-		Ember.set(client, 'clientName', type);
-		//Ember.set(client, 'store', this);
+		Ember.assert('No RPC Client was found for ' + type.classify(), !Ember.isNone(Client));
+
+		var client = Client.create(owner.ownerInjection(), {
+			store: this,
+			clientName: type
+		});
 		
 		Ember.assert('No method exists for the rpc client ' + type.classify() + '.' + method.camelize(), !Ember.isNone(client[method.camelize()]));
 		

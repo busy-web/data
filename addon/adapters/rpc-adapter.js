@@ -13,7 +13,7 @@ import Ember from 'ember';
  *
  * @extends Ember.Object
  */
-var rpcClient = Ember.Object.extend(
+export default Ember.Object.extend(
 {
 	dataService: Ember.inject.service('busy-data'),
 
@@ -190,15 +190,3 @@ var rpcClient = Ember.Object.extend(
 		});
 	},
 });
-
-rpcClient.reopenClass(
-{
-	_create: rpcClient.create,
-
-	create: function(url, container)
-	{
-		return this._create(container.ownerInjection(), {url: url});
-	}
-});
-
-export default rpcClient;
