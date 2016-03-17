@@ -4,7 +4,7 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-import CollectionManager from 'busy-data/collections/collection-manager';
+import Manager from 'busy-data/utils/manager';
 import RPCAdapter from 'busy-data/adapters/rpc-adapter';
 
 /***/
@@ -166,7 +166,7 @@ export default DS.Store.extend(
 	{
 		var owner = Ember.getOwner(this);
 
-		return CollectionManager.create(owner.ownerInjection(), {
+		return Manager.create(owner.ownerInjection(), {
 			store: this,
 			operations: Ember.A(),
 			__storedOperations: Ember.A()

@@ -3,7 +3,7 @@
  *
  */
 import Ember from 'ember';
-import Collection from 'busy-data/collections/collection';
+import Collection from 'busy-data/utils/collection';
 
 /**
  *
