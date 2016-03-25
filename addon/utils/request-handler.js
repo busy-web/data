@@ -45,6 +45,16 @@ function getParamFromModels(key, model)
 	return prop;
 }
 
+function isJoinAll(type)
+{
+	return /all/.test(Ember.String.dasherize(type));
+}
+
+function isOuterJoin(type)
+{
+	return /outer/.test(Ember.String.dasherize(type));
+}
+
 /**
  * `Util\RequestHandler`
  *
@@ -52,6 +62,8 @@ function getParamFromModels(key, model)
 export default Ember.Object.extend(
 {
 	store: null,
+
+	finishedList: null,
 
 	buildQuery(operation)
 	{
@@ -139,9 +151,10 @@ export default Ember.Object.extend(
 		var joinOn = Ember.get(operation, 'params.joinOn');
 		var joinModel = Ember.get(operation, 'params.join');
 		var query = Ember.get(operation, 'params.query') || {};
+		var alias = Ember.get(operation, 'alias');
 
-		var hasMany = /all/.test(Ember.String.dasherize(type));
-		var isOuter = /outer/.test(Ember.String.dasherize(type));
+		var hasMany = isJoinAll(Ember.String.dasherize(type));
+		var isOuter = isOuterJoin(Ember.String.dasherize(type));
 
 		Ember.assert('You must set a model type in the operation object.', !Ember.isNone(modelType));
 
@@ -157,6 +170,11 @@ export default Ember.Object.extend(
 			var modelName = Ember.String.camelize(modelType);
 				modelName = hasMany ? Ember.String.pluralize(modelName) : modelName;
 
+			if(Ember.isNone(alias))
+			{
+				alias = modelName;
+			}
+
 			if(!isOuter)
 			{
 				if(!Ember.isNone(parentModel.forEach))
@@ -164,12 +182,12 @@ export default Ember.Object.extend(
 					let getter = hasMany ? 'filterBy' : 'findBy';
 					parentModel.forEach(function(item)
 					{
-						item.set(modelName, children[getter].call(children, Ember.String.camelize(modelKey), getModelProperty(item, joinOn)));
+						item.set(alias, children[getter].call(children, Ember.String.camelize(modelKey), getModelProperty(item, joinOn)));
 					});
 				}
 				else
 				{
-					parentModel.set(modelName, hasMany ? children : children.objectAt(0));
+					parentModel.set(alias, hasMany ? children : children.objectAt(0));
 				}
 			}
 			else
@@ -194,30 +212,97 @@ export default Ember.Object.extend(
 		{
 			var type = Ember.get(item, 'operationType');
 			var modelName = Ember.String.camelize(Ember.get(item, 'modelType'));
+			var alias = Ember.get(item, 'alias');
+			if(Ember.isNone(alias))
+			{
+				alias = modelName;
+			}
 
 			if(type === 'join' || type === 'joinAll' || type === 'outerJoin' || type === 'outerJoinAll')
 			{
+				if(isJoinAll(type))
+				{
+					alias = Ember.String.pluralize(alias);
+				}
+
 				if(!Ember.isNone(parents))
 				{
-					var parentModel = Ember.get(parents, Ember.String.camelize(Ember.get(item, 'params.join')));
-					if(!Ember.isNone(parentModel))
+					var parentPath = _this.findParentPath(item);
+					if(!Ember.isEmpty(parentPath))
 					{
-						requests[modelName] = _this.dispatchCall(type, item, parentModel);
-					}
-					else
-					{
-						Ember.Error("No parentModel was found for the specified " + type + " [" + modelName + "]");
+						var parentModel = Ember.get(parents, parentPath);
+						if(!Ember.isNone(parentModel))
+						{
+							if(parentModel.get('isFulfilled') !== false)
+							{
+								requests[alias] = _this.dispatchCall(type, item, parentModel);
+								remove.pushObject(item);
+								_this.finishedList.unshiftObject(item);
+							}
+						}
 					}
 				}
 			}
 			else
 			{
-				requests[modelName] = _this.dispatchCall(type, item);
-				remove.push(item);
+				requests[alias] = _this.dispatchCall(type, item);
+				remove.pushObject(item);
+				_this.finishedList.unshiftObject(item);
 			}
 		});
 
 		operations.removeObjects(remove);
 		return Ember.RSVP.hash(requests);
+	},
+
+	findParentPath: function(operation)
+	{
+		var joinName = Ember.get(operation || {}, 'params.join');
+		if(Ember.isNone(joinName))
+		{
+			return '';
+		}
+
+		var parentPath = '';
+		var currJoin = joinName;
+		var finished = this.finishedList;
+		var isOuter = false;
+
+		for(let key in finished)
+		{
+			if(finished.hasOwnProperty(key))
+			{
+				let item = finished[key];
+				if(Ember.get(item, 'modelType') === Ember.String.dasherize(currJoin))
+				{
+					let tempName = Ember.String.camelize(Ember.get(item, 'modelType'));
+					if(isJoinAll(Ember.get(item, 'operationType')))
+					{
+						tempName = Ember.String.pluralize(tempName);
+					}
+
+					parentPath = tempName + '.' + parentPath;
+					currJoin = Ember.get(item, 'params.join');
+					isOuter = isOuterJoin(Ember.get(item, 'operationType'));
+				}
+				else if(Ember.get(item, 'alias') === Ember.String.camelize(currJoin))
+				{
+					parentPath = Ember.get(item, 'alias') + '.' + parentPath;
+					currJoin = Ember.get(item, 'params.join');
+					isOuter = isOuterJoin(Ember.get(item, 'operationType'));
+				}
+
+				// break from the loop if the currJoin is null
+				// or we hit an outer join model
+				if(Ember.isNone(currJoin) || isOuter)
+				{
+					break;
+				}
+			}
+		}
+
+		parentPath = parentPath.replace(/\.$/, '');
+
+		return parentPath;
 	}
 });

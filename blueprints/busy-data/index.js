@@ -15,7 +15,7 @@ module.exports = {
 	afterInstall: function(/*options*/) 
 	{
 		var _this = this;
-		return this.addBowerPackageToProject('node-uuid', '~1.4.3').then(function()
+		return this.addBowerPackageToProject('node-uuid', '1.4.7').then(function()
 		{
 			return _this.addAddonToProject('ember-simple-auth@1.0.1');
 		});

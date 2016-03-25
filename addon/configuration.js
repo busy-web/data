@@ -13,6 +13,7 @@ const kDefaults = {
 	BATCH_DELETE: false,
 	BATCH_PUT: false,
 	DEBUG_MODE: false,
+	XDEBUG_SESSION_START: false,
 	usePatchInPlaceOfPut: false,
 
 	authMapKey: 'session:map',
@@ -42,6 +43,7 @@ export default {
 
 	// true to turn on debug mode
 	DEBUG_MODE: kDefaults.debugMode,
+	XDEBUG_SESSION_START: kDefaults.XDEBUG_SESSION_START,
 
 	authMapKey: kDefaults.authMapKey,
 	switchKey: kDefaults.switchKey,

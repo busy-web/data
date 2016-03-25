@@ -102,6 +102,11 @@ export default DS.RESTAdapter.extend(
 			url = url + '&' + this.get('dataService.debugUrlParam') + '=true';
 		}
 
+		if(this.get('dataService.xdebugSession'))
+		{
+			url = url + '&' + this.get('dataService.xdebug') + '=' + this.get('dataService.xdebugSession');
+		}
+
 		return url;
 	},
 

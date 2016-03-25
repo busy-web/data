@@ -45,73 +45,73 @@ export default Ember.Object.extend(
 	__collection: null,
 	__storedOperations: null,
 
-	query: function(modelType, query)
+	query: function(modelType, query, alias)
 	{
 		query = query || {};
 
-		this.addOperation('query', modelType, {query: query});
+		this.addOperation('query', modelType, {query: query}, alias);
 
 		return this;
 	},
 
-	queryRecord: function(modelType, query)
+	queryRecord: function(modelType, query, alias)
 	{
 		query = query || {};
 
-		this.addOperation('queryRecord', modelType, {query: query});
+		this.addOperation('queryRecord', modelType, {query: query}, alias);
 
 		return this;
 	},
 
-	findAll: function(modelType, query)
+	findAll: function(modelType, query, alias)
 	{
 		query = query || {};
 
-		this.addOperation('findAll', modelType, {query: query});
+		this.addOperation('findAll', modelType, {query: query}, alias);
 
 		return this;
 	},
 
-	findWhereIn: function(modelType, key, id, query)
+	findWhereIn: function(modelType, key, id, query, alias)
 	{
 		query = query || {};
 
-		this.addOperation('findWhereIn', modelType, {key: key, id: id, query: query});
+		this.addOperation('findWhereIn', modelType, {key: key, id: id, query: query}, alias);
 
 		return this;
 	},
 
-	findRecord: function(modelType, id)
+	findRecord: function(modelType, id, alias)
 	{
-		this.addOperation('findRecord', modelType, {id: id});
+		this.addOperation('findRecord', modelType, {id: id}, alias);
 
 		return this;
 	},
 
-	outerJoin: function(modelType, join, joinOn, query)
+	outerJoin: function(modelType, join, joinOn, query, alias)
 	{
-		this.addOperation('outerJoin', modelType, {join: join, joinOn: joinOn, query: query});
+		this.addOperation('outerJoin', modelType, {join: join, joinOn: joinOn, query: query}, alias);
 
 		return this;
 	},
 	
-	outerJoinAll: function(modelType, join, joinOn, query)
+	outerJoinAll: function(modelType, join, joinOn, query, alias)
 	{
-		this.addOperation('outerJoinAll', modelType, {join: join, joinOn: joinOn, query: query});
+		this.addOperation('outerJoinAll', modelType, {join: join, joinOn: joinOn, query: query}, alias);
 
 		return this;
 	},
 
-	join: function(modelType, join, joinOn, query)
+	join: function(modelType, join, joinOn, query, alias)
 	{
-		this.addOperation('join', modelType, {join: join, joinOn: joinOn, query: query});
+		this.addOperation('join', modelType, {join: join, joinOn: joinOn, query: query}, alias);
 
 		return this;
 	},
 
-	joinAll: function(modelType, join, joinOn, query)
+	joinAll: function(modelType, join, joinOn, query, alias)
 	{
-		this.addOperation('joinAll', modelType, {join: join, joinOn: joinOn, query: query});
+		this.addOperation('joinAll', modelType, {join: join, joinOn: joinOn, query: query}, alias);
 
 		return this;
 	},
@@ -160,7 +160,7 @@ export default Ember.Object.extend(
 		return this;
 	},
 
-	addOperation: function(type, modelType, params)
+	addOperation: function(type, modelType, params, alias)
 	{
 		var id = generateId();
 
@@ -168,6 +168,7 @@ export default Ember.Object.extend(
 			id: id,
 			operationType: type,
 			modelType: modelType,
+			alias: alias,
 			params: params,
 			polymorph: this.__polymorph
 		}));
@@ -176,6 +177,7 @@ export default Ember.Object.extend(
 			id: id,
 			operationType: type,
 			modelType: modelType,
+			alias: alias,
 			params: params,
 			polymorph: this.__polymorph
 		}));
@@ -190,6 +192,7 @@ export default Ember.Object.extend(
 				id: item.get('id'),
 				operationType: item.get('operationType'),
 				modelType: item.get('modelType'),
+				alias: item.get('alias'),
 				params: item.get('params'),
 				polymorph: item.get('polymorph')
 			}));
@@ -247,7 +250,7 @@ export default Ember.Object.extend(
 
 	fetch: function()
 	{
-		var requester = RequestHandler.create({store: this.store});
+		var requester = RequestHandler.create({store: this.store, finishedList: Ember.A()});
 		var operations = this.get('operations');
 
 		if(operations.length === 0)
@@ -273,31 +276,26 @@ export default Ember.Object.extend(
 		}
 	},
 
-	__fetch: function(req, operations, parents)
+	__fetch: function(req, operations, parents, tries)
 	{
 		var _this = this;
+		parents = parents || {};
+		tries = tries || 0;
+
 		var length = operations.get('length');
-		if(length === 0)
+		if(length === 0 || tries >= 10000)
 		{
-			return Ember.RSVP.resolve(null);
+			return Ember.RSVP.resolve(parents);
 		}
 
 		return req.buildRequest(operations, parents).then(function(data)
 		{
-			if(operations.get('length') < length)
+			if(!Ember.isNone(data))
 			{
-				return _this.__fetch(req, operations, data).then(function(childData)
-				{
-					if(!Ember.isNone(childData))
-					{
-						mergeObject(data, childData);
-					}
-
-					return data;
-				});
+				mergeObject(parents, data);
 			}
 
-			return data;
+			return _this.__fetch(req, operations, parents, ++tries);
 		});
 	}
 });

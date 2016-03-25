@@ -55,7 +55,11 @@ function mergeObject(toObject, fromObject)
 	{
 		if(fromObject.hasOwnProperty(i))
 		{
-			setModelProperty(toObject, i, getModelProperty(fromObject, i));
+			var prop = getModelProperty(fromObject, i);
+			if(!Ember.isNone(prop))
+			{
+				setModelProperty(toObject, i, prop);
+			}
 		}
 	}
 

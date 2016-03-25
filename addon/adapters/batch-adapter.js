@@ -174,6 +174,11 @@ export default Ember.Object.extend(
 				{
 					params[_this.get('dataService.debugUrlParam')] = true;
 				}
+
+				if(_this.get('dataService.xdebugSession'))
+				{
+					params[_this.get('dataService.xdebug')] = _this.get('dataService.xdebugSession');
+				}
 				
 				req[key] = params;
 			}
@@ -260,6 +265,11 @@ export default Ember.Object.extend(
 		if(this.get('dataService.debug'))
 		{
 			url = url + '&' + this.get('dataService.debugUrlParam') + '=true';
+		}
+
+		if(this.get('dataService.xdebugSession'))
+		{
+			url = url + '&' + this.get('dataService.xdebug') + '=' + this.get('dataService.xdebugSession');
 		}
 
 		return url;

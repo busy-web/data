@@ -44,6 +44,16 @@ export default Ember.Service.extend(
 		return '_debug';
 	}.property(),
 
+	xdebug: function()
+	{
+		return 'XDEBUG_SESSION_START';
+	}.property(),
+
+	xdebugSession: function()
+	{
+		return Configuration.XDEBUG_SESSION_START;
+	}.property(),
+
 	version: function()
 	{
 		return Configuration.API_VERSION;
