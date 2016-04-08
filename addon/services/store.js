@@ -113,6 +113,8 @@ export default DS.Store.extend(
 
 		query._in = {};
 		query._in[key] = sendValues;
+		query.page = 1;
+		query.page_size = this._maxPageSize;
 
 		return this.findAll(modelType, query).then(function(models)
 		{
