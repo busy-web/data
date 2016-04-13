@@ -95,6 +95,11 @@ export default LocalStore.extend(
 		return JSON.parse(localStorage.getItem(Configuration.simpleAuthKey));
 	},
 
+	getAuthId: function()
+	{
+		return localStorage.getItem(Configuration.activeMemberKey);
+	},
+
 	/**
 	 * adds an account reference value to the account map for lookup of other accounts
 	 *
@@ -145,6 +150,20 @@ export default LocalStore.extend(
 		data = JSON.parse(data);
 
 		return data[id] || {};
+	},
+
+	removeAuth: function(id)
+	{
+		var data = localStorage.getItem(Configuration.simpleAuthKey);
+			data = JSON.parse(data);
+
+		if(!Ember.isNone(Ember.get(data, id)))
+		{
+			delete data[id];
+		}
+
+		var json = JSON.stringify(data);
+		localStorage.setItem(Configuration.simpleAuthKey, json);
 	},
 
 	clear: function()
