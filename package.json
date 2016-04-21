@@ -41,7 +41,8 @@
     "loader.js": "^4.0.0"
   },
   "keywords": [
-    "ember-addon"
+    "ember-addon",
+	"busybusy"
   ],
   "dependencies": {
     "ember-cli-babel": "^5.1.5"
