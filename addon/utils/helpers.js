@@ -81,7 +81,7 @@ function generateModelPath()
 	var args = arguments;
 	for(let key in args)
 	{
-		if(args.hasOwnProperty(key) && !Ember.isNone(args[key]))
+		if(args.hasOwnProperty(key) && !Ember.isNone(args[key]) && key !== 'length')
 		{
 			var extendedPath = args[key].split('.');
 			if(extendedPath.length > 1)
