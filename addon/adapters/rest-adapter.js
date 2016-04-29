@@ -228,11 +228,28 @@ export default DS.RESTAdapter.extend(
 		}
 		else if(this.isInvalid(status, headers, result)) 
 		{
-			return new DS.InvalidError(result.code);
+			var err = result.code;
+			if(this.get('dataService.debug') && result && result.debug)
+			{
+				err = result.debug.errors;
+			}
+
+			var errArray = [];
+			for(var i in err)
+			{
+				if(err.hasOwnProperty(i))
+				{
+					errArray.push({
+						status: status,
+						detail: err[i]
+					});
+				}
+			}
+
+			return new DS.InvalidError(errArray);
 		}
 
 		var errors = this.normalizeErrorResponse(status, headers, result);
-
 		return new DS.AdapterError(errors);
 	},
 
@@ -257,11 +274,6 @@ export default DS.RESTAdapter.extend(
 		var error = this._super(status, headers, payload);
 		
 		error = (error || (payload && !payload.success));
-
-		if(this.get('dataService.debug') && payload && payload.debug)
-		{
-			Ember.Logger.warn("DEBUG API CALL FAILED: ", payload.debug);
-		}
 
 		if(status === 401 || (typeof payload === 'object' && payload.statusCode === 401))
 		{
