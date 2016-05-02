@@ -149,21 +149,33 @@ export default LocalStore.extend(
 
 		data = JSON.parse(data);
 
-		return data[id] || {};
+		if(!Ember.isNone(data) && !Ember.isEmpty(id) && !Ember.isNone(Ember.get(data, id)))
+		{
+			return Ember.get(data, id);
+		}
+		else
+		{
+			return {};
+		}
 	},
 
 	removeAuth: function(id)
 	{
-		var data = localStorage.getItem(Configuration.simpleAuthKey);
-			data = JSON.parse(data);
+		Ember.assert("You must pass an id{string} to local-store.removeAuth()", typeof id === 'string');
 
-		if(!Ember.isNone(Ember.get(data, id)))
+		if(!Ember.isEmpty(id))
 		{
-			delete data[id];
-		}
+			var data = localStorage.getItem(Configuration.simpleAuthKey);
+				data = JSON.parse(data);
 
-		var json = JSON.stringify(data);
-		localStorage.setItem(Configuration.simpleAuthKey, json);
+			if(!Ember.isNone(data) && !Ember.isNone(Ember.get(data, id)))
+			{
+				delete data[id];
+			}
+
+			var json = JSON.stringify(data);
+			localStorage.setItem(Configuration.simpleAuthKey, json);
+		}
 	},
 
 	clear: function()
