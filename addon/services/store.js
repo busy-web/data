@@ -283,7 +283,7 @@ export default DS.Store.extend(
 				var records, payload;
 
 				store._adapterRun(function () {
-					payload = serializer.normalizeResponse(store, typeClass, adapterPayload.result, null, 'rpcQuery');
+					payload = serializer.normalizeResponse(store, typeClass, adapterPayload, null, 'rpcQuery');
 
 					//TODO Optimize
 					records = store.push(payload);

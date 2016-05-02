@@ -21,23 +21,25 @@ function EmptyObject()
  */
 function _parseResponseHeaders(headerStr) 
 {
-	var headers = new EmptyObject();
-	if (!headerStr) {
+	let headers = new EmptyObject();
+	if(!headerStr) 
+	{
 		return headers;
 	}
 
-	var headerPairs = headerStr.split('\u000d\u000a');
-	for (var i = 0; i < headerPairs.length; i++) {
-		var headerPair = headerPairs[i];
-		// Can't use split() here because it does the wrong thing
-		// if the header value has the string ": " in it.
-		var index = headerPair.indexOf('\u003a\u0020');
-		if (index > 0) {
-			var key = headerPair.substring(0, index);
-			var val = headerPair.substring(index + 2);
-			headers[key] = val;
+	let headerPairs = headerStr.split('\u000d\u000a');
+	
+	headerPairs.forEach((header) => {
+		let [field, ...value] = header.split(':');
+
+		field = field.trim();
+		value = value.join(':').trim();
+
+		if(value) 
+		{
+			headers[field] = value;
 		}
-	}
+	});
 
 	return headers;
 }
@@ -214,7 +216,7 @@ export default DS.RESTAdapter.extend(
 		return true;
 	},
 
-	handleResponse: function(status, headers, payload)
+	handleResponse: function(status, headers, payload, requestData)
 	{
 		var result = payload;
 		if(Ember.isNone(payload.success))
@@ -222,68 +224,112 @@ export default DS.RESTAdapter.extend(
 			result = payload.result;
 		}
 
-		if(this.isSuccess(status, headers, result)) 
+		if(status === 401 || (typeof result === 'object' && result.statusCode === 401))
 		{
-			return payload;
-		}
-		else if(this.isInvalid(status, headers, result)) 
-		{
-			var err = result.code;
-			if(this.get('dataService.debug') && result && result.debug)
-			{
-				err = result.debug.errors;
-			}
+			this.get('dataService').invalidateSession();
 
-			var errArray = [];
-			for(var i in err)
-			{
-				if(err.hasOwnProperty(i))
-				{
-					errArray.push({
-						status: status,
-						detail: err[i]
-					});
-				}
-			}
-
-			return new DS.InvalidError(errArray);
+			return;
 		}
 
-		var errors = this.normalizeErrorResponse(status, headers, result);
-		return new DS.AdapterError(errors);
+		return this._super(status, headers, result, requestData);
+
+	//	if(this.isSuccess(status, headers, result)) 
+	//	{
+	//		return payload;
+	//	}
+	//	else if(this.isInvalid(status, headers, result)) 
+	//	{
+	//		var err = result.code;
+	//		if(this.get('dataService.debug') && result && result.debug)
+	//		{
+	//			err = result.debug.errors;
+	//		}
+
+	//		var errArray = [];
+	//		for(var i in err)
+	//		{
+	//			if(err.hasOwnProperty(i))
+	//			{
+	//				errArray.push({
+	//					status: status,
+	//					detail: err[i]
+	//				});
+	//			}
+	//		}
+
+	//		return new DS.InvalidError(errArray);
+	//	}
+
+	//	let errors = this.normalizeErrorResponse(status, headers, result);
+
+	//	return new DS.AdapterError(errors);
+	},
+
+	normalizeErrorResponse: function(status, headers, payload)
+	{
+		var err = payload.code;
+		if(this.get('dataService.debug') && payload && payload.debug)
+		{
+			err = payload.debug.errors;
+		}
+
+		var errArray = [];
+		for(var i in err)
+		{
+			if(err.hasOwnProperty(i))
+			{
+				errArray.push({
+					status: status,
+					title: "The backend responded with an error",
+					detail: err[i]
+				});
+			}
+		}
+
+		return errArray;
+	},
+
+	/**
+	 * Generates a detailed ("friendly") error message, with plenty
+	 * of information for debugging (good luck!)
+	 * @method generatedDetailedMessage
+	 * @private
+	 * @param  {Number} status
+	 * @param  {Object} headers
+	 * @param  {Object} payload
+	 * @param  {Object} requestData
+	 * @return {String} detailed error message
+	 */
+	generatedDetailedMessage: function(status, headers, payload, requestData) 
+	{
+		var shortenedPayload;
+		var payloadContentType = headers["Content-Type"] || "Empty Content-Type";
+
+		if (payloadContentType === "text/html" && payload.length > 250) {
+			shortenedPayload = "[Omitted Lengthy HTML]";
+		} else {
+			shortenedPayload = JSON.stringify(payload);
+		}
+
+		var requestDescription = requestData.method + ' ' + requestData.url;
+		var payloadDescription = 'Payload (' + payloadContentType + ')';
+
+		return ['Ember Data Request ' + requestDescription + ' returned a ' + status, payloadDescription, shortenedPayload].join('\n');
 	},
 
 	isSuccess: function(status, headers, payload)
 	{
 		var success = this._super(status, headers, payload);
 
-		success = (success && payload.success);
-		
-		if(status === 401 || (typeof payload === 'object' && payload.statusCode === 401))
-		{
-			this.get('dataService').invalidateSession();
-
-			success = false;
-		}
-		
-		return success;
+		return (success && payload.success);
 	},
 
-	isInvalid: function(status, headers, payload)
-	{
-		var error = this._super(status, headers, payload);
-		
-		error = (error || (payload && !payload.success));
-
-		if(status === 401 || (typeof payload === 'object' && payload.statusCode === 401))
-		{
-			this.get('dataService').invalidateSession();
-
-			error = true;
-		}
-		
-		return error;
-	},
+//	isInvalid: function(status, headers, payload)
+//	{
+//		var error = this._super(status, headers, payload);
+//		
+//		return (error || (payload && !payload.success));
+//	},
 
 	/**
 	  Called by the store when a newly created record is
@@ -381,6 +427,11 @@ export default DS.RESTAdapter.extend(
 	{
 		var adapter = this;
 		var key = 'DS: RESTAdapter#ajax ' + type + ' to ' + url;
+		var requestData = {
+			url: url,
+			method: type,
+			batch: isBatch
+		};
 
 		return new Ember.RSVP.Promise(function(resolve, reject)
 		{
@@ -388,48 +439,54 @@ export default DS.RESTAdapter.extend(
 
 			hash.success = function (payload, textStatus, jqXHR) 
 			{
-				var response;
-				if (!(response instanceof DS.AdapterError)) 
-				{
-					response = adapter.handleResponse(jqXHR.status, _parseResponseHeaders(jqXHR.getAllResponseHeaders()), response || payload);
-				}
+				let response = adapter.handleResponse(
+					jqXHR.status, 
+					_parseResponseHeaders(jqXHR.getAllResponseHeaders()), 
+					payload,
+					requestData
+				);
 
-				if (response instanceof DS.AdapterError) 
+				if(response && response.isAdapterError) 
 				{
-					Ember.run(null, reject, response);
+					// setup for error reporting.
+					response.message = type + " - " + url;
+					response.hash = hash.data;
+
+					Ember.run.join(null, reject, response);
 				}
 				else 
 				{
-					Ember.run(null, resolve, response);
+					Ember.run.join(null, resolve, response);
 				}
 			};
 
 			hash.error = function (jqXHR, textStatus, errorThrown) 
 			{
-				var error;
+				let error;
 
-				if (!(error instanceof Error)) 
+				if (errorThrown instanceof Error) 
 				{
-					if (errorThrown instanceof Error) 
-					{
-						error = errorThrown;
-					}
-					else if (textStatus === 'timeout') 
-					{
-						error = new DS.TimeoutError();
-					}
-					else if (textStatus === 'abort') 
-					{
-						error = new DS.AbortError();
-					}
-					else 
-					{
-						var headers = _parseResponseHeaders(jqXHR.getAllResponseHeaders());
-						error = adapter.handleResponse(jqXHR.status, headers, adapter.parseErrorResponse(jqXHR.responseText) || errorThrown);
-					}
+					error = errorThrown;
+				}
+				else if (textStatus === 'timeout') 
+				{
+					error = new DS.TimeoutError();
+				}
+				else if (textStatus === 'abort') 
+				{
+					error = new DS.AbortError();
+				}
+				else 
+				{
+					error = adapter.handleResponse(
+						jqXHR.status, 
+						_parseResponseHeaders(jqXHR.getAllResponseHeaders()), 
+						adapter.parseErrorResponse(jqXHR.responseText) || errorThrown,
+						requestData
+					);
 				}
 			
-				Ember.run(null, reject, error);
+				Ember.run.join(null, reject, error);
 			};
 
 			if(isBatch && isManual)
