@@ -7,44 +7,6 @@ import DS from 'ember-data';
 import Configuration from './../configuration';
 
 /**
- * EmptyObject Class
- *
- * creates an empty object class
- */
-function EmptyObject()
-{
-}
-
-/**
- * Parses a response header.
- *
- */
-function _parseResponseHeaders(headerStr) 
-{
-	let headers = new EmptyObject();
-	if(!headerStr) 
-	{
-		return headers;
-	}
-
-	let headerPairs = headerStr.split('\u000d\u000a');
-	
-	headerPairs.forEach((header) => {
-		let [field, ...value] = header.split(':');
-
-		field = field.trim();
-		value = value.join(':').trim();
-
-		if(value) 
-		{
-			headers[field] = value;
-		}
-	});
-
-	return headers;
-}
-
-/**
  * @class
  * main ember-data adapter
  *
@@ -232,37 +194,6 @@ export default DS.RESTAdapter.extend(
 		}
 
 		return this._super(status, headers, result, requestData);
-
-	//	if(this.isSuccess(status, headers, result)) 
-	//	{
-	//		return payload;
-	//	}
-	//	else if(this.isInvalid(status, headers, result)) 
-	//	{
-	//		var err = result.code;
-	//		if(this.get('dataService.debug') && result && result.debug)
-	//		{
-	//			err = result.debug.errors;
-	//		}
-
-	//		var errArray = [];
-	//		for(var i in err)
-	//		{
-	//			if(err.hasOwnProperty(i))
-	//			{
-	//				errArray.push({
-	//					status: status,
-	//					detail: err[i]
-	//				});
-	//			}
-	//		}
-
-	//		return new DS.InvalidError(errArray);
-	//	}
-
-	//	let errors = this.normalizeErrorResponse(status, headers, result);
-
-	//	return new DS.AdapterError(errors);
 	},
 
 	normalizeErrorResponse: function(status, headers, payload)
@@ -303,6 +234,7 @@ export default DS.RESTAdapter.extend(
 	generatedDetailedMessage: function(status, headers, payload, requestData) 
 	{
 		var shortenedPayload;
+		console.log(headers);
 		var payloadContentType = headers["Content-Type"] || "Empty Content-Type";
 
 		if (payloadContentType === "text/html" && payload.length > 250) {
@@ -314,7 +246,7 @@ export default DS.RESTAdapter.extend(
 		var requestDescription = requestData.method + ' ' + requestData.url;
 		var payloadDescription = 'Payload (' + payloadContentType + ')';
 
-		return ['Ember Data Request ' + requestDescription + ' returned a ' + status, payloadDescription, shortenedPayload].join('\n');
+		return ['Ember Data Request ' + requestDescription + ' returned a ' + status, payloadDescription, shortenedPayload].join(" - ");
 	},
 
 	isSuccess: function(status, headers, payload)
@@ -324,28 +256,21 @@ export default DS.RESTAdapter.extend(
 		return (success && payload.success);
 	},
 
-//	isInvalid: function(status, headers, payload)
-//	{
-//		var error = this._super(status, headers, payload);
-//		
-//		return (error || (payload && !payload.success));
-//	},
-
 	/**
-	  Called by the store when a newly created record is
-	  saved via the `save` method on a model record instance.
-
-	  The `createRecord` method serializes the record and makes an Ajax (HTTP POST) request
-	  to a URL computed by `buildURL`.
-
-	  See `serialize` for information on how to customize the serialized form
-	  of a record.
-
-	  @method createRecord
-	  @param {DS.Store} store
-	  @param {subclass of DS.Model} type
-	  @param {DS.Snapshot} snapshot
-	  @return {Promise} promise
+	 * Called by the store when a newly created record is
+	 * saved via the `save` method on a model record instance.
+	 *
+	 * The `createRecord` method serializes the record and makes an Ajax (HTTP POST) request
+	 * to a URL computed by `buildURL`.
+	 * 
+	 * See `serialize` for information on how to customize the serialized form
+	 * of a record.
+	 *
+	 * @method createRecord
+	 * @param {DS.Store} store
+	 * @param {subclass of DS.Model} type
+	 * @param {DS.Snapshot} snapshot
+	 * @return {Promise} promise
 	*/
 	createRecord: function(store, type, snapshot) 
 	{
@@ -398,110 +323,31 @@ export default DS.RESTAdapter.extend(
 			options._autoBatch = snapshot.record._autoBatch;
 		}
 
-		return this.ajax(url, "PUT", options);
+		return this.ajax(url, "PATCH", options);
 	},
 
-	ajax: function(url, type, options)
+	_ajaxRequest: function(options)
 	{
+		options = options || {};
+
 		var isBatch = Configuration.BATCH_GET;
-		if(options && options.data && options.data.auth_header)
+		if(options.data && options.data.auth_header)
 		{
 			isBatch = false;
 		}
 
-		if(type === "GET" && isBatch)
+		if(isBatch && options._batch)
 		{
-			return this._ajax(url, type, options, true, false);
+			this.get('dataService.manualBatch').send(options);
 		}
-		else if(options && options._batch)
+		else if(isBatch && options.type === 'GET')
 		{
-			return this._ajax(url, type, options, true, !options._autoBatch);
+			this.get('dataService.autoBatch').send(options);
 		}
 		else
 		{
-			return this._ajax(url, type, options, false, false);
+			Ember.$.ajax(options);
 		}
-	},
-
-	_ajax: function(url, type, options, isBatch, isManual)
-	{
-		var adapter = this;
-		var key = 'DS: RESTAdapter#ajax ' + type + ' to ' + url;
-		var requestData = {
-			url: url,
-			method: type,
-			batch: isBatch
-		};
-
-		return new Ember.RSVP.Promise(function(resolve, reject)
-		{
-			var hash = adapter.ajaxOptions(url, type, options);
-
-			hash.success = function (payload, textStatus, jqXHR) 
-			{
-				let response = adapter.handleResponse(
-					jqXHR.status, 
-					_parseResponseHeaders(jqXHR.getAllResponseHeaders()), 
-					payload,
-					requestData
-				);
-
-				if(response && response.isAdapterError) 
-				{
-					// setup for error reporting.
-					response.message = type + " - " + url;
-					response.hash = hash.data;
-
-					Ember.run.join(null, reject, response);
-				}
-				else 
-				{
-					Ember.run.join(null, resolve, response);
-				}
-			};
-
-			hash.error = function (jqXHR, textStatus, errorThrown) 
-			{
-				let error;
-
-				if (errorThrown instanceof Error) 
-				{
-					error = errorThrown;
-				}
-				else if (textStatus === 'timeout') 
-				{
-					error = new DS.TimeoutError();
-				}
-				else if (textStatus === 'abort') 
-				{
-					error = new DS.AbortError();
-				}
-				else 
-				{
-					error = adapter.handleResponse(
-						jqXHR.status, 
-						_parseResponseHeaders(jqXHR.getAllResponseHeaders()), 
-						adapter.parseErrorResponse(jqXHR.responseText) || errorThrown,
-						requestData
-					);
-				}
-			
-				Ember.run.join(null, reject, error);
-			};
-
-			if(isBatch && isManual)
-			{
-				adapter.get('dataService.manualBatch').send(hash);
-			}
-			else if(isBatch)
-			{
-				adapter.get('dataService.autoBatch').send(hash);
-			}
-			else
-			{
-				Ember.$.ajax(hash);
-			}
-		}, key);
 	},
 
 	/**
@@ -522,12 +368,6 @@ export default DS.RESTAdapter.extend(
 			hash.dataType = 'json';
 			hash.context = this;
 			hash.data = hash.data || {};
-
-		// Convert all PUT methods to PATCH
-		if(hash.type === "PUT")
-		{
-			hash.type = "PATCH";
-		}
 
 		// set up the content type and data object
 		//
