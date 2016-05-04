@@ -180,10 +180,21 @@ export default DS.RESTAdapter.extend(
 
 	handleResponse: function(status, headers, payload, requestData)
 	{
-		var result = payload;
-		if(Ember.isNone(payload.success))
+		var result = payload || {};
+		
+		if(typeof payload === 'object' && Ember.isNone(payload.success))
 		{
 			result = payload.result;
+		}
+
+		if(typeof result !== 'object')
+		{
+			result = {
+				code: result,
+				debug: {
+					errors: [result]
+				}
+			};
 		}
 
 		if(status === 401 || (typeof result === 'object' && result.statusCode === 401))
