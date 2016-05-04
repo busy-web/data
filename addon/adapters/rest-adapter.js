@@ -330,12 +330,7 @@ export default DS.RESTAdapter.extend(
 	{
 		options = options || {};
 
-		var isBatch = Configuration.BATCH_GET;
-		if(options.data && options.data.auth_header)
-		{
-			isBatch = false;
-		}
-
+		var isBatch = (Configuration.BATCH_GET && !options._prevent_batch);
 		if(isBatch && options._batch)
 		{
 			this.get('dataService.manualBatch').send(options);
@@ -385,6 +380,8 @@ export default DS.RESTAdapter.extend(
 		{
 			headers = hash.data.auth_header;
 			delete hash.data.auth_header;
+
+			hash._prevent_batch = true;
 		}
 
 		if(!Ember.isNone(headers))
