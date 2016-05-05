@@ -66,13 +66,13 @@ export default Ember.Service.extend(
 
 	publicKey: function()
 	{
-		return this.get('session.session.authenticated.public_key');
-	}.property('session.session.authenticated.public_key'),
+		return this.get('session.data.authenticated.public_key');
+	}.property('session.data.authenticated.public_key'),
 
 	basicKey: function()
 	{
-		return this.get('session.session.authenticated.auth_hash');
-	}.property('session.session.authenticated.auth_hash'),
+		return this.get('session.data.authenticated.auth_hash');
+	}.property('session.data.authenticated.auth_hash'),
 
 	publicKeyAuthString: function()
 	{

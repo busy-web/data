@@ -201,18 +201,46 @@ export default DS.RESTAdapter.extend(
 		{
 			this.get('dataService').invalidateSession();
 
-			return;
+			return new DS.AdapterError([{status: 401, details: 'Unathorized'}], "Not Authorized");
+		}
+		else if(status === 0)
+		{
+			return new DS.AdapterError([{status: 0, details: "Canceled"}], "Call Aborted");
 		}
 
-		return this._super(status, headers, result, requestData);
+		if(this.isSuccess(status, headers, result)) 
+		{
+			return result;
+		}
+		else if(this.isInvalid(status, headers, result)) 
+		{
+			let errArray = Ember.get(result, 'code');
+			if(this.get('dataService.debug'))
+			{
+				errArray = Ember.get(result, 'debug.errors');
+			}
+			return new DS.InvalidError(errArray);
+		}
+
+		let errors = this.normalizeErrorResponse(status, headers, result);
+		let detailedMessage = this.generatedDetailedMessage(status, headers, result, requestData);
+
+		return new DS.AdapterError(errors, detailedMessage);
 	},
 
 	normalizeErrorResponse: function(status, headers, payload)
 	{
+		console.log('normalizeErrorResponse', status, headers, payload);
+
 		var err = payload.code;
 		if(this.get('dataService.debug') && payload && payload.debug)
 		{
 			err = payload.debug.errors;
+		}
+
+		if(status === 0)
+		{
+
 		}
 
 		var errArray = [];
@@ -245,7 +273,6 @@ export default DS.RESTAdapter.extend(
 	generatedDetailedMessage: function(status, headers, payload, requestData) 
 	{
 		var shortenedPayload;
-		console.log(headers);
 		var payloadContentType = headers["Content-Type"] || "Empty Content-Type";
 
 		if (payloadContentType === "text/html" && payload.length > 250) {
