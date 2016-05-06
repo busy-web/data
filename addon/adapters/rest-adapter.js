@@ -230,8 +230,6 @@ export default DS.RESTAdapter.extend(
 
 	normalizeErrorResponse: function(status, headers, payload)
 	{
-		console.log('normalizeErrorResponse', status, headers, payload);
-
 		var err = payload.code;
 		if(this.get('dataService.debug') && payload && payload.debug)
 		{
@@ -371,7 +369,14 @@ export default DS.RESTAdapter.extend(
 		var isBatch = (Configuration.BATCH_GET && !options._prevent_batch);
 		if(isBatch && options._batch)
 		{
-			this.get('dataService.manualBatch').send(options);
+			if(options._autoBatch)
+			{
+				this.get('dataService.autoBatch').send(options);
+			}
+			else
+			{
+				this.get('dataService.manualBatch').send(options);
+			}
 		}
 		else if(isBatch && options.type === 'GET')
 		{
