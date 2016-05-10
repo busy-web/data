@@ -116,23 +116,30 @@ export default DS.RESTSerializer.extend(
 
 				if(!isNone(get(item, 'length')))
 				{
-					_this.flattenArray(modelType, parentObj, item);
-
-					var ids = [];
-					for(let index in item)
+					if(!Ember.isEmpty(item))
 					{
-						if(item.hasOwnProperty(index))
-						{
-							if(isNone(item[index].id))
-							{
-								item[index].id = _this.store.generateUUID();
-							}
-							ids.push(item[index].id);
-						}
-					}
+						_this.flattenArray(modelType, parentObj, item);
 
-					parentObj[name] = item;
-					data[key] = ids;
+						var ids = [];
+						for(let index in item)
+						{
+							if(item.hasOwnProperty(index))
+							{
+								if(isNone(item[index].id))
+								{
+									item[index].id = _this.store.generateUUID();
+								}
+								ids.push(item[index].id);
+							}
+						}
+
+						parentObj[name] = item;
+						data[key] = ids;
+					}
+					else
+					{
+						delete data[key];
+					}
 				}
 				else
 				{
