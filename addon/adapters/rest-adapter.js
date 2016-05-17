@@ -130,6 +130,74 @@ export default DS.RESTAdapter.extend(
 
 		return this.ajax(url, 'POST', {data: JSON.stringify(query), _batch: false});
 	},
+	
+	findBelongsTo: function(store, snapshot, url, relationship)
+	{
+		let opts = Ember.get(relationship, 'options') || {};
+		let query = Ember.get(opts, 'query') || {};
+		let foreignKeyName = Ember.String.camelize(relationship.type) + 'Id';
+		let joinName = Ember.String.camelize(Ember.get(opts, 'joinName') || '');
+
+		var attrs = Object.keys(snapshot._attributes);
+
+		if(!Ember.isEmpty(joinName))
+		{
+			if(attrs.indexOf(joinName) !== -1)
+			{
+				query.id = snapshot.record.get(joinName);
+			}
+			else
+			{
+				query[Ember.String.underscore(joinName)] = snapshot.id;
+			}
+		}
+		else if(attrs.indexOf(foreignKeyName) !== -1)
+		{
+			query.id = snapshot.record.get(foreignKeyName);	
+		}
+		else
+		{
+			query[Ember.String.underscore(snapshot.modelName + '-id')] = snapshot.id;
+		}
+		
+		url = this.buildURL(url, null, null, 'query', query);
+		console.log('findBelongsTo', url, query);
+		return this.ajax(url, 'GET', {data: query});
+	},
+
+	findHasMany: function(store, snapshot, url, relationship)
+	{
+		let opts = Ember.get(relationship, 'options') || {};
+		let query = Ember.get(opts, 'query') || {};
+		let foreignKeyName = Ember.String.camelize(relationship.type) + 'Id';
+		let joinName = Ember.String.camelize(Ember.get(opts, 'joinName') || '');
+
+		var attrs = Object.keys(snapshot._attributes);
+
+		if(!Ember.isEmpty(joinName))
+		{
+			if(attrs.indexOf(joinName) !== -1)
+			{
+				query.id = snapshot.record.get(joinName);
+			}
+			else
+			{
+				query[Ember.String.underscore(joinName)] = snapshot.id;
+			}
+		}
+		else if(attrs.indexOf(foreignKeyName) !== -1)
+		{
+			query.id = snapshot.record.get(foreignKeyName);	
+		}
+		else
+		{
+			query[Ember.String.underscore(snapshot.modelName + '-id')] = snapshot.id;
+		}
+		
+		url = this.buildURL(url, null, null, 'query', query);
+		console.log('findHasMany', url, query);
+		return this.ajax(url, 'GET', {data: query});
+	},
 
 //	findAll: function(store, type, sinceToken, model, query)
 //	{

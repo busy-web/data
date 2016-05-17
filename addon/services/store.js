@@ -137,6 +137,21 @@ export default DS.Store.extend(
 		});
 	},
 
+	_setupRelationships(record)
+	{
+		this._super(...arguments);
+
+		record.type.eachRelationship((key) => {
+			let relationship = record._relationships.get(key);
+				relationship.updateLink(relationship.relationshipMeta.type);
+		});
+	},
+
+	findBelongsTo: function(owner, link, relationship)
+	{
+		return this._super(owner, link, relationship);
+	},
+
 	_filterByQuery: function(models, query)
 	{
 		var excludeKeys = ['_in', '_desc', '_asc', '_lte', '_gte', '_lt', '_gt', 'page', 'page_size'];
