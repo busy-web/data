@@ -149,7 +149,82 @@ export default DS.Store.extend(
 
 	findBelongsTo: function(owner, link, relationship)
 	{
-		return this._super(owner, link, relationship);
+		console.log('findBelongsTo', link);
+		return this._getJoined(owner, link, relationship).then(model => {
+
+			if(model && model.objectAt !== undefined)
+			{
+				model = model.objectAt(0);
+			}
+
+			if(!model)
+			{
+				return model;
+			}
+
+			return model._internalModel;
+		});
+	},
+
+	findHasMany: function(owner, link, relationship)
+	{
+		console.log('findHasMany', link);
+		return this._getJoined(owner, link, relationship);
+	},
+
+	_getJoined: function(owner, link, relationship)
+	{
+		let opts = Ember.get(relationship, 'options') || {};
+		let query = Ember.get(opts, 'query') || {};
+		let foreignKeyName = Ember.String.camelize(relationship.type) + 'Id';
+		let joinName = Ember.String.camelize(Ember.get(opts, 'joinName') || '');
+
+		var attrs = Object.keys(owner._data);
+		var queryKeys = Object.keys(query);
+
+		if(!Ember.isEmpty(joinName))
+		{
+			if(attrs.indexOf(joinName) !== -1)
+			{
+				let id = owner.record.get(joinName);
+				if(Ember.isNone(id))
+				{
+					return Ember.RSVP.resolve(null);
+				}
+
+				if(queryKeys.length === 0)
+				{
+					return this.findRecord(link, id);
+				}
+				
+				query.id = id;
+			}
+			else
+			{
+				query[Ember.String.underscore(joinName)] = owner.id;
+			}
+		}
+		else if(attrs.indexOf(foreignKeyName) !== -1)
+		{
+			let id = owner.record.get(foreignKeyName);
+			if(Ember.isNone(id))
+			{
+				return Ember.RSVP.resolve(null);
+			}
+
+			if(queryKeys.length === 0)
+			{
+				return this.findRecord(link, id);
+			}
+			
+			query.id = id;
+		}
+		else
+		{
+			query[Ember.String.underscore(owner.modelName + '-id')] = owner.id;
+		}
+
+		return this.query(link, query);
 	},
 
 	_filterByQuery: function(models, query)
@@ -388,5 +463,24 @@ export default DS.Store.extend(
 		{
 			return this._super(modelName);
 		}
+	},
+
+	_findRecord()
+	{
+		debugger;
+		return this._super(...arguments);
+	},
+
+	scheduleFetch()
+	{
+		debugger;
+		return this._super(...arguments);
+	},
+
+	_flushPendingFetchForType(pendingFetchItems, typeClass)
+	{
+		console.log(pendingFetchItems, typeClass);
+
+		return this._super(...arguments);
 	},
 });

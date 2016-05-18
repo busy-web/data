@@ -16,6 +16,8 @@ export default DS.RESTAdapter.extend(
 {
 	dataService: Ember.inject.service('busy-data'),
 
+	coalesceFindRequests: true,
+
 	host: function()
 	{
 		return this.get('dataService.host');
@@ -133,39 +135,15 @@ export default DS.RESTAdapter.extend(
 	
 	findBelongsTo: function(store, snapshot, url, relationship)
 	{
-		let opts = Ember.get(relationship, 'options') || {};
-		let query = Ember.get(opts, 'query') || {};
-		let foreignKeyName = Ember.String.camelize(relationship.type) + 'Id';
-		let joinName = Ember.String.camelize(Ember.get(opts, 'joinName') || '');
-
-		var attrs = Object.keys(snapshot._attributes);
-
-		if(!Ember.isEmpty(joinName))
-		{
-			if(attrs.indexOf(joinName) !== -1)
-			{
-				query.id = snapshot.record.get(joinName);
-			}
-			else
-			{
-				query[Ember.String.underscore(joinName)] = snapshot.id;
-			}
-		}
-		else if(attrs.indexOf(foreignKeyName) !== -1)
-		{
-			query.id = snapshot.record.get(foreignKeyName);	
-		}
-		else
-		{
-			query[Ember.String.underscore(snapshot.modelName + '-id')] = snapshot.id;
-		}
-		
-		url = this.buildURL(url, null, null, 'query', query);
-		console.log('findBelongsTo', url, query);
-		return this.ajax(url, 'GET', {data: query});
+		return this._findJoined(store, snapshot, url, relationship, 'findBelongsTo');
 	},
 
 	findHasMany: function(store, snapshot, url, relationship)
+	{
+		return this._findJoined(store, snapshot, url, relationship, 'findHasMany');
+	},
+
+	_findJoined: function(store, snapshot, url, relationship, type)
 	{
 		let opts = Ember.get(relationship, 'options') || {};
 		let query = Ember.get(opts, 'query') || {};
@@ -173,12 +151,26 @@ export default DS.RESTAdapter.extend(
 		let joinName = Ember.String.camelize(Ember.get(opts, 'joinName') || '');
 
 		var attrs = Object.keys(snapshot._attributes);
+		var queryKeys = Object.keys(query);
 
 		if(!Ember.isEmpty(joinName))
 		{
 			if(attrs.indexOf(joinName) !== -1)
 			{
-				query.id = snapshot.record.get(joinName);
+				let id = snapshot.record.get(joinName);
+				if(Ember.isNone(id))
+				{
+					return this.emptyResponse();
+				}
+
+				if(queryKeys.length === 0)
+				{
+					url = this.buildURL(url, id, null, 'findRecord', query);
+					console.log(type, url);
+					return this.ajax(url, 'GET');
+				}
+				
+				query.id = id;
 			}
 			else
 			{
@@ -187,7 +179,20 @@ export default DS.RESTAdapter.extend(
 		}
 		else if(attrs.indexOf(foreignKeyName) !== -1)
 		{
-			query.id = snapshot.record.get(foreignKeyName);	
+			let id = snapshot.record.get(foreignKeyName);
+			if(Ember.isNone(id))
+			{
+				return this.emptyResponse();
+			}
+
+			if(queryKeys.length === 0)
+			{
+				url = this.buildURL(url, id, null, 'findRecord', query);
+				console.log(type, url);
+				return this.ajax(url, 'GET');
+			}
+			
+			query.id = id;
 		}
 		else
 		{
@@ -195,8 +200,30 @@ export default DS.RESTAdapter.extend(
 		}
 		
 		url = this.buildURL(url, null, null, 'query', query);
-		console.log('findHasMany', url, query);
+		console.log(type, url, query);
 		return this.ajax(url, 'GET', {data: query});
+	},
+
+	emptyResponse: function()
+	{
+		return Ember.RSVP.resolve(this._defaultResponse());
+	},
+
+	_defaultResponse: function()
+	{
+		return {
+			code: [],
+			data: [],
+			returned_rows: 0,
+			total_rows: 0,
+			supported: 200
+		};
+	},
+
+	groupRecordsForFindMany: function()
+	{
+		console.log(arguments);
+		this._super(...arguments);
 	},
 
 //	findAll: function(store, type, sinceToken, model, query)
