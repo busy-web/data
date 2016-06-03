@@ -2,6 +2,8 @@
 
 This README outlines the details of collaborating on this Ember addon.
 
+This addon supports Ember 2.5 and up.
+
 ## Installation
 
 * `git clone` this repository
