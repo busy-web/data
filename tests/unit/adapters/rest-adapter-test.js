@@ -7,6 +7,8 @@ moduleFor('adapter:rest-adapter', 'Unit | Adapter | rest adapter', {
 
 // Replace this with your real tests.
 test('it exists', function(assert) {
+
+	console.log('rest-adapter', this);
   let adapter = this.subject();
   assert.ok(adapter);
 });
