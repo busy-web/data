@@ -45,7 +45,7 @@ export default Ember.Object.extend(
 	 * @private
 	 * @method headers
 	 */
-	headers: function()
+	headers: Ember.computed('dataService.authKey', function()
 	{
 		var authUser = this.get('dataService.authKey');
 		var headers = null;
@@ -62,7 +62,7 @@ export default Ember.Object.extend(
 		}
 
 		return headers;
-	}.property('dataService.authKey'),
+	}),
 
 	send: function(hash)
 	{

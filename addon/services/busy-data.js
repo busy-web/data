@@ -29,72 +29,72 @@ export default Ember.Service.extend(
 		this.autoBatch = Ember.getOwner(this)._lookupFactory('adapter:batch-adapter').create({maxSize: 20, interval: 5});
 	},
 
-	host: function()
+	host: Ember.computed(function()
 	{
 		return Configuration.API_URL;
-	}.property(),
+	}),
 
-	debug: function()
+	debug: Ember.computed(function()
 	{
 		return Configuration.DEBUG_MODE;
-	}.property(),
+	}),
 
-	debugUrlParam: function()
+	debugUrlParam: Ember.computed(function()
 	{
 		return '_debug';
-	}.property(),
+	}),
 
-	xdebug: function()
+	xdebug: Ember.computed(function()
 	{
 		return 'XDEBUG_SESSION_START';
-	}.property(),
+	}),
 
-	xdebugSession: function()
+	xdebugSession: Ember.computed(function()
 	{
 		return Configuration.XDEBUG_SESSION_START;
-	}.property(),
+	}),
 
-	version: function()
+	version: Ember.computed(function()
 	{
 		return Configuration.API_VERSION;
-	}.property(),
+	}),
 
-	versionUrlParam: function()
+	versionUrlParam: Ember.computed(function()
 	{
 		return '_version';
-	}.property(),
+	}),
 
-	publicKey: function()
+	publicKey: Ember.computed('session.data.authenticated.public_key', function()
 	{
 		return this.get('session.data.authenticated.public_key');
-	}.property('session.data.authenticated.public_key'),
+	}),
 
-	basicKey: function()
+	basicKey: Ember.computed('session.data.authenticated.auth_hash', function()
 	{
 		return this.get('session.data.authenticated.auth_hash');
-	}.property('session.data.authenticated.auth_hash'),
+	}),
 
-	publicKeyAuthString: function()
+	publicKeyAuthString: Ember.computed(function()
 	{
 		return 'Key-Authorization';
-	}.property(),
+	}),
 
-	basicKeyAuthString: function()
+	basicKeyAuthString: Ember.computed(function()
 	{
 		return 'Authorization';
-	}.property(),
+	}),
 
-	shouldSendVersion: function()
+	shouldSendVersion: Ember.computed(function()
 	{
 		return true;
-	}.property(),
+	}),
 
 	invalidateSession: function()
 	{
 		this.get('session').invalidate('authenticator:basic', {});
 	},
 
-	authKey: function()
+	authKey: Ember.computed('publicKey', 'basicKey', function()
 	{
 		var auth = null;
 		if(!Ember.isNone(this.get('publicKey')))
@@ -111,5 +111,5 @@ export default Ember.Service.extend(
 		}
 
 		return auth;
-	}.property('publicKey', 'basicKey'),
+	}),
 });

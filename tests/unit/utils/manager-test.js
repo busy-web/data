@@ -5,6 +5,6 @@ module('Unit | Utility | manager');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let result = manager();
+  let result = manager.create();
   assert.ok(result);
 });

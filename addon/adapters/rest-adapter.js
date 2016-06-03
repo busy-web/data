@@ -16,10 +16,10 @@ export default DS.RESTAdapter.extend(
 {
 	dataService: Ember.inject.service('busy-data'),
 
-	host: function()
+	host: Ember.computed(function()
 	{
 		return this.get('dataService.host');
-	}.property(),
+	}),
 
 	shouldReloadAll: function()
 	{
@@ -32,7 +32,7 @@ export default DS.RESTAdapter.extend(
 	 * @private
 	 * @method headers
 	 */
-	headers: function()
+	headers: Ember.computed('dataService.authKey', function()
 	{
 		var authUser = this.get('dataService.authKey');
 		var headers = null;
@@ -49,7 +49,7 @@ export default DS.RESTAdapter.extend(
 		}
 
 		return headers;
-	}.property('dataService.authKey'),
+	}),
 
 	buildURL: function(modelName, id, snapshot, requestType, query)
 	{

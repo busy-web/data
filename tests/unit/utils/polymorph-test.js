@@ -5,6 +5,6 @@ module('Unit | Utility | polymorph');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let result = polymorph();
+  let result = polymorph.create();
   assert.ok(result);
 });
