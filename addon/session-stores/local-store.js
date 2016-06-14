@@ -6,6 +6,21 @@ import Ember from 'ember';
 import LocalStore from 'ember-simple-auth/session-stores/local-storage';
 import Configuration from 'busy-data/configuration';
 
+function getStoreObject(key)
+{
+	Ember.assert("You must provide a string as the first param to getStoreObject", typeof key === 'string');
+
+	return JSON.parse(localStorage.getItem(key)) || {};
+}
+
+function setStoreObject(key, value)
+{
+	Ember.assert("You must provide a string as the first param to setStoreObject", typeof key === 'string');
+	Ember.assert("You must provide an object as the second param to setStoreObject", typeof value === 'object');
+
+	localStorage.setItem(key, JSON.stringify(value));
+}
+
 /**
  * `Stores/LocalStorage`
  *
@@ -17,11 +32,11 @@ export default LocalStore.extend(
 {
 	key: '',
 
-	init: function()
+	init()
 	{
 		this.key = Configuration.simpleAuthKey;
 		
-		this._super();
+		this._super(...arguments);
 	},
 
 	/**
@@ -31,7 +46,7 @@ export default LocalStore.extend(
 	 * @public
 	 * @method suspendedKey
 	 */
-	suspendedKey: function()
+	suspendedKey()
 	{
 		return localStorage.getItem(Configuration.switchKey);
 	},
@@ -43,9 +58,9 @@ export default LocalStore.extend(
 	 * @public
 	 * @method suspendAuth
 	 */
-	suspendAuth: function()
+	suspendAuth()
 	{
-		var oldKey = localStorage.getItem(Configuration.activeMemberKey);
+		const oldKey = localStorage.getItem(Configuration.activeMemberKey);
 
 		localStorage.setItem(Configuration.switchKey, oldKey);
 		localStorage.setItem(Configuration.activeMemberKey, '');
@@ -58,14 +73,15 @@ export default LocalStore.extend(
 	 * @public
 	 * @method switchAuth
 	 */
-	switchAuth: function(key)
+	switchAuth(key)
 	{
 		Ember.assert('key must be a string in switchKey(key)', Ember.typeOf(key) === 'string');
 
-		var authMap = localStorage.getItem(Configuration.authMapKey);
-			authMap = JSON.parse(authMap);
+		const authMap = getStoreObject(Configuration.authMapKey);
 
-		localStorage.setItem(Configuration.activeMemberKey, authMap[key]);
+		Ember.assert('The key provided to switchKey(key) was not found in auth', Ember.get(authMap, key) !== undefined);
+
+		localStorage.setItem(Configuration.activeMemberKey, Ember.get(authMap, key));
 	},
 
 	/**
@@ -75,9 +91,9 @@ export default LocalStore.extend(
 	 * @public
 	 * @method resumeAuth
 	 */
-	resumeAuth: function()
+	resumeAuth()
 	{
-		var oldKey = this.suspendedKey();
+		const oldKey = this.suspendedKey();
 		
 		localStorage.setItem(Configuration.activeMemberKey, oldKey);
 		localStorage.setItem(Configuration.switchKey, '');
@@ -90,12 +106,12 @@ export default LocalStore.extend(
 	 * @public
 	 * @method getAuthAccounts
 	 */
-	getAuthAccounts: function()
+	getAuthAccounts()
 	{
-		return JSON.parse(localStorage.getItem(Configuration.simpleAuthKey));
+		return getStoreObject(Configuration.simpleAuthKey);
 	},
 
-	getAuthId: function()
+	getAuthId()
 	{
 		return localStorage.getItem(Configuration.activeMemberKey);
 	},
@@ -108,21 +124,22 @@ export default LocalStore.extend(
 	 * @param key {string}
 	 * @param value {string}
 	 */
-	addAuthAccount: function(key, value)
+	addAuthAccount(key, value)
 	{
 		Ember.assert('key must be a string in addAuthAccount(key, value)', Ember.typeOf(key) === 'string');
 		Ember.assert('value must be a string in addAuthAccount(key, value)', Ember.typeOf(key) === 'string');
 
-		var accounts = JSON.parse(localStorage.getItem(Configuration.authMapKey)) || {};
-			accounts[key] = value;
+		const accounts = getStoreObject(Configuration.authMapKey);
+			
+		accounts[key] = value;
 
-		localStorage.setItem(Configuration.authMapKey, JSON.stringify(accounts));
+		setStoreObject(Configuration.authMapKey, accounts);
 	},
 
-	persist: function(data)
+	persist(data)
 	{
 		data = data || {};
-		var storedData = JSON.parse(localStorage.getItem(Configuration.simpleAuthKey)) || {};
+		let storedData =  getStoreObject(Configuration.simpleAuthKey);
 
 		if(data.authenticated !== undefined && data.authenticated.invalidate)
 		{
@@ -136,49 +153,44 @@ export default LocalStore.extend(
 			localStorage.setItem(Configuration.activeMemberKey, data.authenticated.id);
 		}
 
-		var json = JSON.stringify(storedData);
-		localStorage.setItem(Configuration.simpleAuthKey, json);
+		setStoreObject(Configuration.simpleAuthKey, storedData);
 
-		this._lastData = this.restore();
+		return Ember.RSVP.resolve();
 	},
 
-	restore: function()
+	restore()
 	{
-		var data = localStorage.getItem(Configuration.simpleAuthKey);
-		var id = localStorage.getItem(Configuration.activeMemberKey);
-
-		data = JSON.parse(data);
+		const data = getStoreObject(Configuration.simpleAuthKey);
+		const id = localStorage.getItem(Configuration.activeMemberKey);
 
 		if(!Ember.isNone(data) && !Ember.isEmpty(id) && !Ember.isNone(Ember.get(data, id)))
 		{
-			return Ember.get(data, id);
+			return Ember.RSVP.resolve(Ember.get(data, id));
 		}
 		else
 		{
-			return {};
+			return Ember.RSVP.resolve({});
 		}
 	},
 
-	removeAuth: function(id)
+	removeAuth(id)
 	{
 		Ember.assert("You must pass an id{string} to local-store.removeAuth()", typeof id === 'string');
 
 		if(!Ember.isEmpty(id))
 		{
-			var data = localStorage.getItem(Configuration.simpleAuthKey);
-				data = JSON.parse(data);
+			const data = getStoreObject(Configuration.simpleAuthKey);
 
 			if(!Ember.isNone(data) && !Ember.isNone(Ember.get(data, id)))
 			{
 				delete data[id];
 			}
 
-			var json = JSON.stringify(data);
-			localStorage.setItem(Configuration.simpleAuthKey, json);
+			setStoreObject(Configuration.simpleAuthKey, data);
 		}
 	},
 
-	clear: function()
+	clear()
 	{
 		localStorage.removeItem(Configuration.simpleAuthKey);
 		localStorage.removeItem(Configuration.activeMemberKey);
