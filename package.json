@@ -1,6 +1,6 @@
 {
   "name": "busy-data",
-  "version": "2.6.4",
+  "version": "2.6.5",
   "description": "The default blueprint for ember-cli addons.",
   "directories": {
     "doc": "doc",
