@@ -74,8 +74,8 @@ export default DS.Store.extend(
 
 		return this.query(modelType, query).then(function(models)
 		{
-			return models.objectAt(0);	
-		}); 
+			return models.objectAt(0);
+		});
 	},
 
 	findWhere: function(modelType, key, value, query)
@@ -94,33 +94,62 @@ export default DS.Store.extend(
 		return this.findWhereIn(modelType, 'id', ids, query);
 	},
 
-	findWhereIn: function(modelType, key, values, query)
+	findWhereIn(modelType, keys, values, query)
 	{
+		// convert string keys into array format
+		if(typeof keys === 'string')
+		{
+			values = [values];
+			keys = [keys];
+		}
+
+		// set query if it was not passed in
 		query = query || {};
-		
+		const _values = [];
+
+		// copy the array values so not to change
+		// the originals.
+		values.forEach((arr) => {
+			_values.push(arr.copy());
+		});
+
+		// call _findWhereIn
+		return this._findWhereIn(modelType, keys, _values, query);
+	},
+
+	_findWhereIn: function(modelType, keys, values, query)
+	{
 		Ember.assert('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
-		Ember.assert('key must be of type string in store.findWhereIn()', typeof key === 'string');
-		Ember.assert('values must be an array of strings in store.findWhereIn()', typeof values === 'object');
+		Ember.assert('keys must be of type array|strings in store.findWhereIn()', Ember.typeOf(keys) === 'array');
+		Ember.assert('values must be an array of strings in store.findWhereIn()', Ember.typeOf(values) === 'array');
 		Ember.assert('query must be an object in store.findWhereIn()', typeof query === 'object');
 
-		if(values.length === 0)
+		const manager = this;
+
+		if(values[0].length === 0)
 		{
 			return Ember.RSVP.resolve([]);
 		}
 
-		var manager = this;
-		var sendValues = values.splice(0, this._maxPageSize);
+		keys.forEach((key, idx) => {
+			let sendValues;
+			if(idx === 0) {
+				sendValues = values[idx].splice(0, this._maxPageSize);
+			} else {
+				sendValues = values[idx];
+			}
 
-		query._in = {};
-		query._in[key] = sendValues;
+			this.__setupWhereInObject(key, sendValues, query);
+		});
+
 		query.page = 1;
 		query.page_size = this._maxPageSize;
 
 		return this.findAll(modelType, query).then(function(models)
 		{
-			if(!Ember.isEmpty(values))
+			if(values[0].length > 0)
 			{
-				return manager.findWhereIn(modelType, key, values, query).then(function(moreModels)
+				return manager.findWhereIn(modelType, keys, values, query).then(function(moreModels)
 				{
 					if(!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content')))
 					{
@@ -135,6 +164,20 @@ export default DS.Store.extend(
 				return models; //manager._filterByQuery(models, query);
 			}
 		});
+	},
+
+	__setupWhereInObject(key, value, query)
+	{
+		if(/^!/.test(key))
+		{
+			query._not_in = query._not_in || {};
+			query._not_in[key.replace(/^!/, '')] = value;
+		}
+		else
+		{
+			query._in = query._in || {};
+			query._in[key] = value;
+		}
 	},
 
 	_filterByQuery: function(models, query)
@@ -163,7 +206,7 @@ export default DS.Store.extend(
 
 		return models;
 	},
-	
+
 	getter: function()
 	{
 		var owner = Ember.getOwner(this);
@@ -195,7 +238,7 @@ export default DS.Store.extend(
 	findRPC: function(type, method, params)
 	{
 		params = params || {};
-		
+
 		var query = {
 			method: method,
 			params: params,
@@ -214,13 +257,13 @@ export default DS.Store.extend(
 			store: this,
 			clientName: type
 		});
-		
+
 		Ember.assert('No method exists for the rpc client ' + type.classify() + '.' + method.camelize(), !Ember.isNone(client[method.camelize()]));
-		
+
 		var _typeClass = client[method.camelize()].call(client);
 
 		Ember.assert('No RPC Model was found for ' + type + '/' + method, !Ember.isNone(_typeClass));
-		
+
         var array = this.recordArrayManager.createAdapterPopulatedRecordArray(_typeClass, query);
 
         var adapter = this.adapterFor(type);
@@ -228,18 +271,18 @@ export default DS.Store.extend(
         Ember.assert("You tried to load a query but you have no adapter (for " + type + '.' + method.camelize() + ")", adapter);
         Ember.assert("You tried to load a query but your adapter does not implement `query`", typeof adapter.query === 'function' || typeof adapter.findQuery === 'function');
 
-		var buildQuery = function(adapter, store, typeClass, query, recordArray) 
+		var buildQuery = function(adapter, store, typeClass, query, recordArray)
 		{
 			var promise = adapter.rpcQuery(store, type, typeClass, query, recordArray);
 
 			var serializer = adapter.serializer;
 
-			if (serializer === undefined) 
+			if (serializer === undefined)
 			{
 				serializer = store.serializerFor(type);
 			}
 
-			if (serializer === null || serializer === undefined) 
+			if (serializer === null || serializer === undefined)
 			{
 				serializer = {
 					extract: function (store, type, payload) {
@@ -266,7 +309,7 @@ export default DS.Store.extend(
 				};
 			};
 
-			var _guard = function(promise, test) 
+			var _guard = function(promise, test)
 			{
 				var guarded = promise['finally'](function() {
 					if (!test()) {
@@ -290,7 +333,7 @@ export default DS.Store.extend(
 				});
 
 				recordArray.loadRecords(records, payload);
-				
+
 				return recordArray;
 			}, null, "DS: Extract payload of rpcQuery " + typeClass);
 		};
@@ -301,7 +344,7 @@ export default DS.Store.extend(
 	_setMetadataForRpc: function(modelName, metadata)
 	{
 		Ember.assert('Passing classes to store methods has been removed. Please pass a dasherized string instead of ' + Ember.inspect(modelName), typeof modelName === 'string');
-		
+
 		var typeClass;
 		if(this.isValidRPC(modelName))
 		{
@@ -311,7 +354,7 @@ export default DS.Store.extend(
 		{
 			typeClass = this.modelFor('rpc.' + modelName);
 		}
-		
+
 		Ember.merge(this.typeMapFor(typeClass).metadata, metadata);
 	},
 
@@ -346,7 +389,7 @@ export default DS.Store.extend(
 		}
 	},
 
-	modelFor: function (modelName) 
+	modelFor: function (modelName)
 	{
 		if(modelName === undefined)
 		{
