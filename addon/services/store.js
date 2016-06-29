@@ -126,7 +126,7 @@ export default DS.Store.extend(
 
 		const manager = this;
 
-		if(values[0].length === 0)
+		if(!/^!/.test(keys[0]) && values[0].length === 0)
 		{
 			return Ember.RSVP.resolve([]);
 		}
@@ -156,12 +156,12 @@ export default DS.Store.extend(
 						models.pushObjects(moreModels.get('content'));
 					}
 
-					return models; //modemanager._filterByQuery(models, query);
+					return models;
 				});
 			}
 			else
 			{
-				return models; //manager._filterByQuery(models, query);
+				return models;
 			}
 		});
 	},
