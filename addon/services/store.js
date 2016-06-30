@@ -96,6 +96,9 @@ export default DS.Store.extend(
 
 	findWhereIn(modelType, keys, values, query)
 	{
+		// set query if it was not passed in
+		query = query || {};
+
 		// convert string keys into array format
 		if(typeof keys === 'string')
 		{
@@ -103,66 +106,58 @@ export default DS.Store.extend(
 			keys = [keys];
 		}
 
-		// set query if it was not passed in
-		query = query || {};
-		const _values = [];
-
-		// copy the array values so not to change
-		// the originals.
-		values.forEach((arr) => {
-			_values.push(arr.copy());
-		});
-
-		// call _findWhereIn
-		return this._findWhereIn(modelType, keys, _values, query);
-	},
-
-	_findWhereIn: function(modelType, keys, values, query)
-	{
 		Ember.assert('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
 		Ember.assert('keys must be of type array|strings in store.findWhereIn()', Ember.typeOf(keys) === 'array');
 		Ember.assert('values must be an array of strings in store.findWhereIn()', Ember.typeOf(values) === 'array');
 		Ember.assert('query must be an object in store.findWhereIn()', typeof query === 'object');
 
-		const manager = this;
+		// copy the array values so not to change
+		// the originals.
+		const _values = [];
+		values.forEach((arr) => {
+			_values.push(arr.copy());
+		});
 
-		if(!/^!/.test(keys[0]) && values[0].length === 0)
+		if(_values[0].length === 0)
 		{
 			return Ember.RSVP.resolve([]);
 		}
 
-		keys.forEach((key, idx) => {
-			let sendValues;
-			if(idx === 0) {
-				sendValues = values[idx].splice(0, this._maxPageSize);
-			} else {
-				sendValues = values[idx];
-			}
-
-			this.__setupWhereInObject(key, sendValues, query);
-		});
-
-		query.page = 1;
-		query.page_size = this._maxPageSize;
-
-		return this.findAll(modelType, query).then(function(models)
+		const promise = [];
+		// call _findWhereIn
+		while(_values[0].length > 0)
 		{
-			if(values[0].length > 0)
-			{
-				return manager.findWhereIn(modelType, keys, values, query).then(function(moreModels)
-				{
-					if(!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content')))
-					{
-						models.pushObjects(moreModels.get('content'));
-					}
+			const _query = {};
+			for(let key in query) {
+				if(query.hasOwnProperty(key)) {
+					_query[key] = query[key];
+				}
+			}
 
-					return models;
-				});
-			}
-			else
-			{
-				return models;
-			}
+			keys.forEach((key, idx) => {
+				let sendValues;
+				if(idx === 0) {
+					sendValues = _values[idx].splice(0, this._maxPageSize);
+				} else {
+					sendValues = _values[idx];
+				}
+
+				this.__setupWhereInObject(key, sendValues, _query);
+			});
+
+			_query.page = 1;
+			_query.page_size = this._maxPageSize;
+
+			promise.push(this.findAll(modelType, _query));
+		}
+
+		return Ember.RSVP.all(promise).then((data) => {
+			const model = data.shift();
+			data.forEach((item) => {
+				model.pushObjects(item.get('content'));
+			});
+
+			return model;
 		});
 	},
 
