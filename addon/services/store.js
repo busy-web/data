@@ -148,16 +148,29 @@ export default DS.Store.extend(
 			_query.page = 1;
 			_query.page_size = this._maxPageSize;
 
-			promise.push(this.findAll(modelType, _query));
+			promise.push({modelType: modelType, query: _query});
 		}
 
-		return Ember.RSVP.all(promise).then((data) => {
-			const model = data.shift();
-			data.forEach((item) => {
-				model.pushObjects(item.get('content'));
-			});
+		return this._findWhereIn(promise);
+	},
 
-			return model;
+	_findWhereIn(queryList)
+	{
+		if(queryList.length === 0)
+		{
+			return Ember.RSVP.resolve([]);
+		}
+
+		var params = queryList.shift();
+
+		return this.findAll(params.modelType, params.query).then((model) => {
+			return this._findWhereIn(queryList).then((moreModels) => {
+				if(!Ember.isEmpty(moreModels))
+				{
+					return model.pushObjects(moreModels.get('content'));
+				}
+				return model;
+			});
 		});
 	},
 
