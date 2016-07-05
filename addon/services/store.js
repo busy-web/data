@@ -31,15 +31,22 @@ export default DS.Store.extend(
 			query.page_size = query.page_size || this._maxPageSize;
 			query.page = query.page || 1;
 
-		return this.query(modelType, query).then(function(models)
+		const _query = {};
+		for(let key in query) {
+			if(query.hasOwnProperty(key)) {
+				_query[key] = query[key];
+			}
+		}
+
+		return this.query(modelType, _query).then(function(models)
 		{
 			var next = models.get('meta').next;
 
 			if(!Ember.isNone(next) && !Ember.isEmpty(next))
 			{
-				query.page = query.page + 1;
+				_query.page = _query.page + 1;
 
-				return manager.findAll(modelType, query).then(function(moreModels)
+				return manager.findAll(modelType, _query).then(function(moreModels)
 				{
 					if(!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content')))
 					{
