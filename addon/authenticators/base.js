@@ -31,21 +31,46 @@ export default Base.extend(
 	{
 		Ember.assert("You must provide 'username and password' or 'token' to authenticate", (options.token || (options.username && options.password)));
 
+		options.success = typeof options.success === 'function' ? options.success : function(){};
+		options.error = typeof options.error === 'function' ? options.error : function(){};
+
 		if(options.username && options.password)
 		{
 			options.password = this.hashPassword(options.password);
 
-			return this.ajax(this.get('authModel'), options).then((authData) => {
-				let authHash;
-				if(options.username && options.password)
-				{
-					authHash = btoa(options.username + ':' + options.password);
-				}
+			return new Ember.RSVP.Promise((resolve, reject) => {
+				//success function
+				const success = (authData) => {
 
-				let auth = this.gennerateAuthObject(authData, authHash);
-				this.onValidated();
+					// create a secure username and password hash to pass around.
+					let authHash;
+					if(options.username && options.password) {
+						authHash = btoa(options.username + ':' + options.password);
+					}
 
-				return auth;
+					// pass the secure username password and the authData from the api call
+					const auth = this.gennerateAuthObject(authData, authHash);
+
+					// validate the results
+					const inValid = this.isInvalid(auth);
+
+					if(!inValid) {
+						this.onValidated();
+						options.success(auth);
+						Ember.run(null, resolve, auth);
+					} else {
+						options.error({status: inValid});
+						Ember.run(null, reject, {status: 401, statusText: "Unauthorized"});
+					}
+				};
+
+				// error function
+				const error = (err) => {
+					options.error(err);
+					Ember.run(null, reject, err);
+				};
+
+				this.ajax(this.get('authModel'), options, success, error);
 			});
 		}
 		else
@@ -64,6 +89,18 @@ export default Base.extend(
 	gennerateAuthObject(authData)
 	{
 		return authData;
+	},
+
+	/**
+	 * validates the auth results and returns nothing if valid and can return the error message or code on invalid.
+	 *
+	 * @method isInvalid
+	 * @param {object} auth
+	 * @return {mixed} true if valid.
+	 */
+	isInvalid(/*auth*/)
+	{
+		return;
 	},
 
 	onValidated()
@@ -116,28 +153,26 @@ export default Base.extend(
 		return xhr;
 	},
 
-	ajax(url, options)
+	ajax(url, options, onSuccess, onError)
 	{
 		var xhr = this.ajaxOptions(url, options);
-		return new Ember.RSVP.Promise((resolve, reject) => {
-			xhr.success = (result) => {
-				if(typeof result === 'string') {
-					result = JSON.parse(result);
-				}
+		xhr.success = (result) => {
+			if(typeof result === 'string') {
+				result = JSON.parse(result);
+			}
 
-				if(result.success) {
-					Ember.run(null, resolve, result);
-				} else {
-					Ember.run(null, reject, result);
-				}
-			};
+			if(result.success) {
+				onSuccess(result);
+			} else {
+				onError(result);
+			}
+		};
 
-			xhr.error = (err) => {
-				Ember.run(null, reject, err);
-			};
+		xhr.error = (err) => {
+			onError(err);
+		};
 
-			Ember.$.ajax(xhr);
-		});
+		Ember.$.ajax(xhr);
 	},
 
 	invalidate(session)

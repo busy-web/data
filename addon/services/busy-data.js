@@ -8,7 +8,7 @@ import Configuration from './../configuration';
 /**
  * `BusyData\Service\BusyData`
  *
- * This class defines how the application will 
+ * This class defines how the application will
  * interface with an api.
  *
  * This is used to set api urls, version numbers, authenticated keys, ect.
@@ -17,7 +17,7 @@ import Configuration from './../configuration';
 export default Ember.Service.extend(
 {
 	session: Ember.inject.service('session'),
-	
+
 	autoBatch: null,
 	manualBatch: null,
 
