@@ -54,10 +54,10 @@ export default {
 	 * load initializer method
 	 *
 	 */
-	load(config) 
+	load(config)
 	{
 		let wrappedConfig = Ember.Object.create(config);
-		for(let property in this) 
+		for(let property in this)
 		{
 			if(property === 'authMapKey' || property === 'switchKey' || property === 'activeMemberKey' || property === 'simpleAuthKey')
 			{
@@ -69,6 +69,6 @@ export default {
 			}
 		}
 
-		
+
 	}
 };

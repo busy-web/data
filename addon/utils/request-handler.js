@@ -15,7 +15,7 @@ const {getModelProperty} = Helper;
  * @private
  * @method getParamFromModels
  * @param key {string} the key to be used in finding the properties
- * @param model {DS.Model} 
+ * @param model {DS.Model}
  * @return {array}
  */
 function getParamFromModels(key, model)
@@ -45,14 +45,32 @@ function getParamFromModels(key, model)
 	return prop;
 }
 
+function objectIsEmpty(obj)
+{
+	if(Ember.isNone(obj))
+	{
+		return true;
+	}
+
+	let length = 0;
+	for(let i in obj) {
+		if(obj.hasOwnProperty(i))
+		{
+			length = length + 1;
+		}
+	}
+
+	return length === 0;
+}
+
 function isJoinAll(type)
 {
-	return /all/.test(Ember.String.dasherize(type));
+	return /join/.test(Ember.String.dasherize(type)) && /all/.test(Ember.String.dasherize(type));
 }
 
 function isOuterJoin(type)
 {
-	return /outer/.test(Ember.String.dasherize(type));
+	return /join/.test(Ember.String.dasherize(type)) && /outer/.test(Ember.String.dasherize(type));
 }
 
 /**
@@ -213,19 +231,13 @@ export default Ember.Object.extend(
 			var type = Ember.get(item, 'operationType');
 			var modelName = Ember.String.camelize(Ember.get(item, 'modelType'));
 			var alias = Ember.get(item, 'alias');
-			if(Ember.isNone(alias))
-			{
-				alias = modelName;
-			}
+				alias = Ember.isNone(alias) ? modelName : alias;
 
 			if(type === 'join' || type === 'joinAll' || type === 'outerJoin' || type === 'outerJoinAll')
 			{
-				if(isJoinAll(type))
-				{
-					alias = Ember.String.pluralize(alias);
-				}
+				alias = isJoinAll(type) ? Ember.String.pluralize(alias) : alias;
 
-				if(!Ember.isNone(parents))
+				if(!objectIsEmpty(parents))
 				{
 					var parentPath = _this.findParentPath(item);
 					if(!Ember.isEmpty(parentPath))

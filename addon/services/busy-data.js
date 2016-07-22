@@ -4,6 +4,7 @@
  */
 import Ember from 'ember';
 import Configuration from './../configuration';
+import BatchAdapter from './../adapters/batch-adapter';
 
 /**
  * `BusyData\Service\BusyData`
@@ -24,9 +25,10 @@ export default Ember.Service.extend(
 	init: function()
 	{
 		this._super();
+		const owner = Ember.getOwner(this);
 
-		this.manualBatch = Ember.getOwner(this).lookup('adapter:batch-adapter');
-		this.autoBatch = Ember.getOwner(this)._lookupFactory('adapter:batch-adapter').create({maxSize: 20, interval: 5});
+		this.manualBatch = BatchAdapter.create(owner.ownerInjection()); //Ember.getOwner(this).lookup('adapter:batch-adapter');
+		this.autoBatch = BatchAdapter.create(owner.ownerInjection(), {maxSize: 20, interval: 5}); //Ember.getOwner(this)._lookupFactory('adapter:batch-adapter').create({maxSize: 20, interval: 5});
 	},
 
 	host: Ember.computed(function()

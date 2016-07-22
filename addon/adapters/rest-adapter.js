@@ -138,7 +138,7 @@ export default DS.RESTAdapter.extend(
 //		query.page_size = query.page_size || 100;
 //		query.page = query.page || 1;
 //
-//		if(sinceToken) 
+//		if(sinceToken)
 //		{
 //			query.updated_on = sinceToken;
 //		}
@@ -163,7 +163,7 @@ export default DS.RESTAdapter.extend(
 //					return data;
 //				});
 //			}
-//			
+//
 //			return data;
 //		});
 //	},
@@ -181,7 +181,7 @@ export default DS.RESTAdapter.extend(
 	handleResponse: function(status, headers, payload, requestData)
 	{
 		var result = payload || {};
-		
+
 		if(typeof payload === 'object' && Ember.isNone(payload.success))
 		{
 			result = payload.result;
@@ -208,11 +208,11 @@ export default DS.RESTAdapter.extend(
 			return new DS.AdapterError([{status: 0, details: "Canceled"}], "Call Aborted");
 		}
 
-		if(this.isSuccess(status, headers, result)) 
+		if(this.isSuccess(status, headers, result))
 		{
 			return result;
 		}
-		else if(this.isInvalid(status, headers, result)) 
+		else if(this.isInvalid(status, headers, result))
 		{
 			let errArray = Ember.get(result, 'code');
 			if(this.get('dataService.debug'))
@@ -234,11 +234,6 @@ export default DS.RESTAdapter.extend(
 		if(this.get('dataService.debug') && payload && payload.debug)
 		{
 			err = payload.debug.errors;
-		}
-
-		if(status === 0)
-		{
-
 		}
 
 		var errArray = [];
@@ -268,7 +263,7 @@ export default DS.RESTAdapter.extend(
 	 * @param  {Object} requestData
 	 * @return {String} detailed error message
 	 */
-	generatedDetailedMessage: function(status, headers, payload, requestData) 
+	generatedDetailedMessage: function(status, headers, payload, requestData)
 	{
 		var shortenedPayload;
 		var payloadContentType = headers["Content-Type"] || "Empty Content-Type";
@@ -298,7 +293,7 @@ export default DS.RESTAdapter.extend(
 	 *
 	 * The `createRecord` method serializes the record and makes an Ajax (HTTP POST) request
 	 * to a URL computed by `buildURL`.
-	 * 
+	 *
 	 * See `serialize` for information on how to customize the serialized form
 	 * of a record.
 	 *
@@ -308,7 +303,7 @@ export default DS.RESTAdapter.extend(
 	 * @param {DS.Snapshot} snapshot
 	 * @return {Promise} promise
 	*/
-	createRecord: function(store, type, snapshot) 
+	createRecord: function(store, type, snapshot)
 	{
 		var data = {};
 		var serializer = store.serializerFor(type.modelName);
@@ -342,7 +337,7 @@ export default DS.RESTAdapter.extend(
 	  @param {DS.Snapshot} snapshot
 	  @return {Promise} promise
 	*/
-	updateRecord: function(store, type, snapshot) 
+	updateRecord: function(store, type, snapshot)
 	{
 		var data = {};
 		var serializer = store.serializerFor(type.modelName);
