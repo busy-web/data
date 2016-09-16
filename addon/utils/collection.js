@@ -38,6 +38,10 @@ export default Ember.ArrayProxy.extend(Ember.Evented,
 		return data;
 	},
 
+	model() {
+		return Ember.RSVP.resolve();
+	},
+
 	createPolymorph: function(type)
 	{
 		var owner = Ember.getOwner(this);

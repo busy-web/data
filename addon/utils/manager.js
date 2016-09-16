@@ -5,7 +5,6 @@
 import Ember from 'ember';
 import RequestHandler from 'busy-data/utils/request-handler';
 import Helper from 'busy-data/utils/helpers';
-import assert from 'busy-utils/assert';
 
 const {getModelProperty, setModelProperty, generateModelPath, generateId, mergeObject} = Helper;
 
@@ -250,13 +249,14 @@ export default Ember.Object.extend(
 	},
 
 	fetch() {
+		const args = arguments;
 		const requester = RequestHandler.create({store: this.store, finishedList: Ember.A()});
 		const operations = this.get('operations');
 		if (operations.length === 0) {
-			return this.__collection.model.apply(this.__collection, arguments);
+			return this.__collection.model.apply(this.__collection, args);
 		} else {
 			return this.__fetch(requester, operations).then(data => {
-				var polyData = this.applyPolymorphs(data);
+				const polyData = this.applyPolymorphs(data);
 				if (!Ember.isNone(this.__collection)) {
 					return this.__collection.populateModels(polyData);
 				} else {
@@ -266,26 +266,20 @@ export default Ember.Object.extend(
 		}
 	},
 
-	__fetch: function(req, operations, parents, tries)
-	{
-		var _this = this;
+	__fetch(req, operations, parents, tries) {
 		parents = parents || {};
 		tries = tries || 0;
 
-		var length = operations.get('length');
-		if(length === 0 || tries >= 10000)
-		{
+		const length = operations.get('length');
+		if (length === 0 || tries >= 10) {
 			return Ember.RSVP.resolve(parents);
 		}
 
-		return req.buildRequest(operations, parents).then(function(data)
-		{
-			if(!Ember.isNone(data))
-			{
+		return req.buildRequest(operations, parents).then(data => {
+			if (!Ember.isNone(data)) {
 				mergeObject(parents, data);
 			}
-
-			return _this.__fetch(req, operations, parents, ++tries);
+			return this.__fetch(req, operations, parents, ++tries);
 		});
 	}
 });
