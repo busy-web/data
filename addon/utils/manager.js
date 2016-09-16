@@ -5,6 +5,7 @@
 import Ember from 'ember';
 import RequestHandler from 'busy-data/utils/request-handler';
 import Helper from 'busy-data/utils/helpers';
+import assert from 'busy-utils/assert';
 
 const {getModelProperty, setModelProperty, generateModelPath, generateId, mergeObject} = Helper;
 
@@ -94,7 +95,7 @@ export default Ember.Object.extend(
 
 		return this;
 	},
-	
+
 	outerJoinAll: function(modelType, join, joinOn, query, alias)
 	{
 		this.addOperation('outerJoinAll', modelType, {join: join, joinOn: joinOn, query: query}, alias);
@@ -244,32 +245,21 @@ export default Ember.Object.extend(
 				}
 			}
 		}
-		
+
 		return buildDataObject(data, dataMap);
 	},
 
-	fetch: function()
-	{
-		var requester = RequestHandler.create({store: this.store, finishedList: Ember.A()});
-		var operations = this.get('operations');
-
-		if(operations.length === 0)
-		{
+	fetch() {
+		const requester = RequestHandler.create({store: this.store, finishedList: Ember.A()});
+		const operations = this.get('operations');
+		if (operations.length === 0) {
 			return this.__collection.model.apply(this.__collection, arguments);
-		}
-		else
-		{
-			var _this = this;
-			return this.__fetch(requester, operations).then(function(data)
-			{
-				var polyData = _this.applyPolymorphs(data);
-
-				if(!Ember.isNone(_this.__collection))
-				{
-					return _this.__collection.populateModels(polyData);
-				}
-				else
-				{
+		} else {
+			return this.__fetch(requester, operations).then(data => {
+				var polyData = this.applyPolymorphs(data);
+				if (!Ember.isNone(this.__collection)) {
+					return this.__collection.populateModels(polyData);
+				} else {
 					return polyData;
 				}
 			});
