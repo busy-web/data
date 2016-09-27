@@ -11,9 +11,9 @@ import assert from 'busy-utils/assert';
  * @class
  * main ember-data adapter
  *
- * @extends DS.RESTAdapter
+ * @extends DS.JSONAPIAdapter
  */
-export default DS.RESTAdapter.extend({
+export default DS.JSONAPIAdapter.extend({
 	dataService: Ember.inject.service('busy-data'),
 
 	host: Ember.computed(function() {

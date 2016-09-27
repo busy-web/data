@@ -266,9 +266,25 @@ export default DS.Store.extend({
 			promise = _guard(promise, _bind(isAlive, store));
 
 			return promise.then(function (adapterPayload) {
+				// Some rpc calls dont return an object. These calls
+				// can return a bool or just a value. This checks for them
+				// and returns the value as and object with a generated id
+				// and a value key.
+				if (!Ember.isNone(adapterPayload.data) && typeof adapterPayload.data !== 'object') {
+					adapterPayload.data = {
+						id: this.rpcId(),
+						value: adapterPayload.data
+					};
+				}
+
+				// convert all objects to array of one object.
+				if (Ember.isNone(Ember.get(adapterPayload.data, 'length'))) {
+					adapterPayload.data = [adapterPayload.data];
+				}
+
 				let records, payload;
 				store._adapterRun(function () {
-					payload = serializer.normalizeResponse(store, typeClass, adapterPayload, null, 'rpcQuery');
+					payload = serializer.normalizeResponse(store, typeClass, adapterPayload, null, 'query');
 					//TODO Optimize
 					records = store.push(payload);
 				});
@@ -278,6 +294,22 @@ export default DS.Store.extend({
 		};
 
     return DS.PromiseArray.create({promise: buildQuery(adapter, this, _typeClass, query, array)});
+	},
+
+	rpcToken: null,
+
+	/**
+	 * generates a simple unique id as a placeholder
+	 * for ember-data with busy rpc model.
+	 *
+	 * @private
+	 * @method rpcId
+	 * @returns {string}
+	 */
+	rpcId() {
+		const token = this.get('rpcToken') || 0;
+		this.set('rpcToken', token + 1);
+		return 'rpc-model-' + token;
 	},
 
 	_setMetadataForRpc(modelName, metadata) {
