@@ -221,7 +221,7 @@ export default DS.RESTSerializer.extend(
 				value = this.utcTime();
 			}
 
-			if(type === 'file' && !isNone(value))
+			if(!isNone(value) && value.hasOwnProperty('file') && value.file instanceof File)
 			{
 				json._fileObject = value;
 				value = value.get('file');
