@@ -18,10 +18,6 @@ const { getOwner } = Ember;
 export default DS.Store.extend({
 	_maxPageSize: kPageSize,
 
-	generateUUID() {
-		return window.uuid.v4();
-	},
-
 	findAll(modelType, query={}) {
 		query.page_size = query.page_size || this._maxPageSize;
 		query.page = query.page || 1;

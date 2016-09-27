@@ -19,7 +19,5 @@ module.exports = {
 		}
 
 		this.app = app;
-
-		app.import(app.bowerDirectory + '/node-uuid/uuid.js');
 	}
 };
