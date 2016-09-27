@@ -5,8 +5,7 @@
 import Ember from 'ember';
 import rpc from './rpc-adapter';
 
-export default Ember.Object.extend(
-{
+export default Ember.Object.extend({
 	dataService: Ember.inject.service('busy-data'),
 
 	requests: null,
@@ -19,23 +18,17 @@ export default Ember.Object.extend(
 	originalInterval: 0,
 	debug: false,
 
-	init: function()
-	{
+	init() {
 		this._super();
-
 		this.set('requests', {});
 		this.set('response', {});
 		this.set('hashMap', {});
 
-		if(typeof this.get('interval') !== 'number' || this.get('interval') < 0)
-		{
+		if (typeof this.get('interval') !== 'number' || this.get('interval') < 0) {
 			this.set('interval', 0);
-		}
-		else
-		{
+		} else {
 			this.set('originalInterval', this.get('interval'));
 		}
-			
 		this._send();
 	},
 
@@ -45,83 +38,71 @@ export default Ember.Object.extend(
 	 * @private
 	 * @method headers
 	 */
-	headers: Ember.computed('dataService.authKey', function()
-	{
-		var authUser = this.get('dataService.authKey');
-		var headers = null;
+	headers: Ember.computed('dataService.authKey', function() {
+		const authUser = this.get('dataService.authKey');
+		let headers = null;
 
-		if(authUser && authUser.type === 10)
-		{
+		if (authUser && authUser.type === 10) {
 			headers = {};
 			headers[this.get('dataService.publicKeyAuthString')] = authUser.key;
-		}
-		else if(authUser && authUser.type === 20)
-		{
+		} else if (authUser && authUser.type === 20) {
 			headers = {};
 			headers[this.get('dataService.basicKeyAuthString')] = 'Basic ' + authUser.key;
 		}
-
 		return headers;
 	}),
 
-	send: function(hash)
-	{
-		if(this.get('interval') > 0)
-		{
+	send(hash) {
+		if (this.get('interval') > 0) {
 			this.set('interval', this.get('originalInterval'));
-			Ember.run.later(this, function()
-			{
+			Ember.run.later(this, function() {
 				this._send();
 			}, this.get('interval'));
 		}
 
 		// create a checksum of the hash
-		var hashKey = this.checksum(hash);
+		const hashKey = this.checksum(hash);
 
 		// get the name of the controller from the url
-		var urlName = this.getName(hash.url);
-	
+		const urlName = this.getName(hash.url);
+
 		// get the current length of our requests and add one
-		var length = this.get('length') + 1;
+		const length = this.get('length') + 1;
 		this.set('length', length);
 
 		// set the name in the hashMap if it hasn't been created.
-		if(Ember.isNone(this.get('hashMap')[hashKey]))
-		{
+		if (Ember.isNone(this.get('hashMap')[hashKey])) {
 			this.get('hashMap')[hashKey] = urlName + '-' + length;
 		}
 
 		// unique name for the request and response maps
-		var hashName = this.get('hashMap')[hashKey];
+		const hashName = this.get('hashMap')[hashKey];
 
-		// create an internal data object 
+		// create an internal data object
 		// that has all the needed references
-		var hashData = {
+		const hashData = {
 			hashKey: hashKey,
 			hashName: hashName,
-			urlName: urlName, 
+			urlName: urlName,
 			hash: hash
 		};
 
 		// set the requests if not set by another request
-		if(Ember.isNone(this.get('requests')[hashName]))
-		{
+		if (Ember.isNone(this.get('requests')[hashName])) {
 			this.get('requests')[hashName] = hashData;
 		}
 
-		// create a response array if not set by another 
+		// create a response array if not set by another
 		// request
-		if(Ember.isNone(this.get('response')[hashName]))
-		{
+		if (Ember.isNone(this.get('response')[hashName])) {
 			this.get('response')[hashName] = [];
 		}
-		
+
 		// add the response to the response hash array
 		this.get('response')[hashName].push(hashData);
 
 		// 40 is set to an absolute max for batch calls.
-		if(length >= 40 || (this.get('maxSize') > 0 && length > this.get('maxSize')))
-		{
+		if (length >= 40 || (this.get('maxSize') > 0 && length > this.get('maxSize'))) {
 			this.commit();
 		}
 	},
@@ -142,7 +123,7 @@ export default Ember.Object.extend(
 		{
 			dataCheck += '-' + JSON.stringify(hash.data);
 		}
-			
+
 		dataCheck += '-' + hash.type;
 
 		return btoa(dataCheck);
@@ -158,7 +139,7 @@ export default Ember.Object.extend(
 			if(requests.hasOwnProperty(key) && key !== 'length')
 			{
 				var params = {
-					method: val.hash.type, 
+					method: val.hash.type,
 					data: val.hash.data, //encodeURIComponent(JSON.stringify(val.hash.data)),
 					url: val.urlName,
 				};
@@ -179,7 +160,7 @@ export default Ember.Object.extend(
 				{
 					params[_this.get('dataService.xdebug')] = _this.get('dataService.xdebugSession');
 				}
-				
+
 				req[key] = params;
 			}
 		});
@@ -194,14 +175,14 @@ export default Ember.Object.extend(
 			if(this.get('length') === 1)
 			{
 				var obj = this.get('requests');
-				Ember.$.each(obj, function(k, v) 
+				Ember.$.each(obj, function(k, v)
 				{
-					if(obj.hasOwnProperty(k) && k !== 'length') 
+					if(obj.hasOwnProperty(k) && k !== 'length')
 					{
 						Ember.$.ajax(v.hash);
 					}
 				});
-			
+
 				this.reset();
 			}
 			else
@@ -255,7 +236,7 @@ export default Ember.Object.extend(
 	ajaxUrl: function()
 	{
 		var url = this.get('dataService.host') + '/batch';
-		
+
 		if(this.get('dataService.shouldSendVersion'))
 		{
 			url = url + '?' + this.get('dataService.versionUrlParam') + '=' + this.get('dataService.version');
@@ -302,7 +283,7 @@ export default Ember.Object.extend(
 		{
 			return _this.error.apply(_this, arguments);
 		};
-		
+
 		// set auth header if public key is set
 		var headers = this.get('headers');
 		if(!Ember.isNone(headers))
