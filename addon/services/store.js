@@ -5,17 +5,16 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import Manager from 'busy-data/utils/manager';
-import RPCAdapter from 'busy-data/adapters/rpc-adapter';
+import RpcStoreMixin from 'busy-data/mixins/rpc-store-mixin';
 
 /***/
 const kPageSize = 100;
-const { getOwner } = Ember;
 
 /**
  * `Service/Store`
  *
  */
-export default DS.Store.extend({
+export default DS.Store.extend(RpcStoreMixin, {
 	_maxPageSize: kPageSize,
 
 	findAll(modelType, query={}) {
@@ -104,6 +103,7 @@ export default DS.Store.extend({
 				}
 			}
 
+			/* jshint ignore:start */
 			keys.forEach((key, idx) => {
 				let sendValues;
 				if (idx === 0) {
@@ -113,6 +113,7 @@ export default DS.Store.extend({
 				}
 				this.__setupWhereInObject(key, sendValues, _query);
 			});
+			/* jshint ignore:end */
 
 			_query.page = 1;
 			_query.page_size = this._maxPageSize;
@@ -176,195 +177,5 @@ export default DS.Store.extend({
 			operations: Ember.A(),
 			__storedOperations: Ember.A()
 		});
-	},
-
-	/**
-	 * Simple rpc request method that does not use the ember-data
-	 * model layer.
-	 *
-	 */
-	rpcRequest(type, method, params, baseURL) {
-		const client = RPCAdapter.create(getOwner(this).ownerInjection(), {url: type});
-		if (baseURL !== undefined) {
-			client.set('baseURL', baseURL);
-		}
-		return client.call(method, params);
-	},
-
-	findRPC(type, method, params={}) {
-		const query = {
-			method: method,
-			params: params,
-			id: 'rpc-' + type,
-			jsonrpc: '2.0'
-		};
-
-    Ember.assert('Passing classes to store methods has been removed. Please pass a dasherized string instead of ' + Ember.inspect(type), typeof type === 'string');
-
-		const owner = getOwner(this);
-		const Client = owner._lookupFactory('rpc:clients.' + type);
-
-		Ember.assert('No RPC Client was found for ' + type.classify(), !Ember.isNone(Client));
-
-		const client = Client.create(owner.ownerInjection(), {
-			store: this,
-			clientName: type
-		});
-
-		Ember.assert('No method exists for the rpc client ' + type.classify() + '.' + method.camelize(), !Ember.isNone(client[method.camelize()]));
-
-		const _typeClass = client[method.camelize()].call(client);
-
-		Ember.assert('No RPC Model was found for ' + type + '/' + method, !Ember.isNone(_typeClass));
-
-		const array = this.recordArrayManager.createAdapterPopulatedRecordArray(_typeClass, query);
-
-		const adapter = this.adapterFor(type);
-
-		Ember.assert("You tried to load a query but you have no adapter (for " + type + '.' + method.camelize() + ")", adapter);
-		Ember.assert("You tried to load a query but your adapter does not implement `query`", typeof adapter.query === 'function' || typeof adapter.findQuery === 'function');
-
-		const buildQuery = function(adapter, store, typeClass, query, recordArray) {
-			let promise = adapter.rpcQuery(store, type, typeClass, query, recordArray);
-			let serializer = adapter.serializer;
-			if (serializer === undefined) {
-				serializer = store.serializerFor(type);
-			}
-
-			if (serializer === null || serializer === undefined) {
-				serializer = {
-					extract: function (store, type, payload) {
-					 	return payload;
-					}
-				};
-			}
-
-			const label = "DS: Handle Adapter#rpcQuery of " + typeClass;
-
-			promise = Ember.RSVP.resolve(promise, label);
-
-			const isAlive = function(object) {
-				return !(Ember.get(object, "isDestroyed") || Ember.get(object, "isDestroying"));
-			};
-
-			const _bind = function(fn) {
-				const args = Array.prototype.slice.call(arguments, 1);
-				return function() {
-					return fn.apply(undefined, args);
-				};
-			};
-
-			const _guard = function(promise, test) {
-				const guarded = promise['finally'](function() {
-					if (!test()) {
-						guarded._subscribers.length = 0;
-					}
-				});
-				return guarded;
-			};
-
-			promise = _guard(promise, _bind(isAlive, store));
-
-			return promise.then(function (adapterPayload) {
-				// Some rpc calls dont return an object. These calls
-				// can return a bool or just a value. This checks for them
-				// and returns the value as and object with a generated id
-				// and a value key.
-				if (!Ember.isNone(adapterPayload.data) && typeof adapterPayload.data !== 'object') {
-					adapterPayload.data = {
-						id: this.rpcId(),
-						value: adapterPayload.data
-					};
-				}
-
-				// convert all objects to array of one object.
-				if (Ember.isNone(Ember.get(adapterPayload.data, 'length'))) {
-					adapterPayload.data = [adapterPayload.data];
-				}
-
-				let records, payload;
-				store._adapterRun(function () {
-					payload = serializer.normalizeResponse(store, typeClass, adapterPayload, null, 'query');
-					//TODO Optimize
-					records = store.push(payload);
-				});
-				recordArray.loadRecords(records, payload);
-				return recordArray;
-			}, null, "DS: Extract payload of rpcQuery " + typeClass);
-		};
-
-    return DS.PromiseArray.create({promise: buildQuery(adapter, this, _typeClass, query, array)});
-	},
-
-	rpcToken: null,
-
-	/**
-	 * generates a simple unique id as a placeholder
-	 * for ember-data with busy rpc model.
-	 *
-	 * @private
-	 * @method rpcId
-	 * @returns {string}
-	 */
-	rpcId() {
-		const token = this.get('rpcToken') || 0;
-		this.set('rpcToken', token + 1);
-		return 'rpc-model-' + token;
-	},
-
-	_setMetadataForRpc(modelName, metadata) {
-		Ember.assert('Passing classes to store methods has been removed. Please pass a dasherized string instead of ' + Ember.inspect(modelName), typeof modelName === 'string');
-
-		let typeClass;
-		if (this.isValidRPC(modelName)) {
-			typeClass = this.modelFor(modelName);
-		} else {
-			typeClass = this.modelFor('rpc.' + modelName);
-		}
-		Ember.merge(this.typeMapFor(typeClass).metadata, metadata);
-	},
-
-	isValidRPC(modelName) {
-		return (/^rpc\.[\s\S]*$/.test(modelName) ? true : false);
-	},
-
-	rpcModelFor(modelType) {
-		Ember.assert('modelType must be an rpc model type to use rpcModelFor', this.isValidRPC(modelType));
-
-		const modelName = modelType.split('.')[1];
-		const factory = getOwner(this)._lookupFactory('rpc:models.' + modelName);
-
-		Ember.assert('No RPC Model was found for ' + modelName, !Ember.isNone(factory));
-
-		factory.modelName = 'rpc.' + modelName;
-		return factory;
-	},
-
-	_hasModelFor(modelName) {
-		if (this.isValidRPC(modelName)) {
-			return (this.rpcModelFor(modelName) !== undefined);
-		} else {
-			return this._super(modelName);
-		}
-	},
-
-	modelFor(modelName) {
-		if (modelName === undefined) {
-			Ember.warn('undefined modelName');
-		}
-
-		if (this.isValidRPC(modelName)) {
-			return this.rpcModelFor(modelName);
-		} else {
-			return this._super(modelName);
-		}
-	},
-
-	modelFactoryFor(modelName) {
-		if(this.isValidRPC(modelName)) {
-			return this.rpcModelFor(modelName);
-		} else {
-			return this._super(modelName);
-		}
-	},
+	}
 });

@@ -51,6 +51,10 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 		return Ember.String.underscore(key);
 	},
 
+	modelNameFromPayloadKey(key) {
+		return key;
+	},
+
 	getDataFromResponse(payload) {
 		// get the data array from the payload
 		return Ember.get(payload, 'data');
@@ -64,5 +68,16 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 			returnedRows: payload.returned_rows,
 			totalRows: payload.total_rows,
 		};
+	},
+
+	serializeIntoHash(hash, type, snapshot, options) {
+		const dataHash = this.serialize(snapshot, options, true);
+		for(let key in dataHash.data) {
+			if (dataHash.data.hasOwnProperty(key)) {
+				if (!Ember.isNone(dataHash.data[key])) {
+					hash[key] = dataHash.data[key];
+				}
+			}
+		}
 	}
 });
