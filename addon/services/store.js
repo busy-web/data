@@ -52,12 +52,12 @@ export default DS.Store.extend(RpcStoreMixin, {
 		});
 	},
 
-	findRecord(modelType, value) {
-		const query = { id: value, deleted_on: '_-DISABLE-_' };
-		return this.query(modelType, query).then(models => {
-			return models.objectAt(0);
-		});
-	},
+//	findRecord(modelType, value) {
+//		const query = { id: value, deleted_on: '_-DISABLE-_' };
+//		return this.query(modelType, query).then(models => {
+//			return models.objectAt(0);
+//		});
+//	},
 
 	findWhere(modelType, key, value, query={}) {
 		query[key] = value;

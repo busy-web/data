@@ -29,22 +29,31 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, Image
 	 * @type string
 	 */
 	authorizer: 'authorizer:base',
+	coalesceFindRequests: true,
+	hasManyFilterKey: 'filter',
 
 	pathForType(type) {
 		return Ember.String.dasherize(type);
 	},
+
+	version: 1,
+	debug: false,
 
 	ajaxOptions(/*url, type, options*/) {
 		const hash = this._super(...arguments);
 
 		let data = hash.data;
 		let isString = false;
-		if(typeof data === 'string') {
+		if (typeof data === 'string') {
 			isString = true;
 			data = JSON.parse(data);
 		}
 
-		if(hash.contentType !== false) {
+		if (hash.data && hash.data.filter) {
+			this.changeFilter(hash);
+		}
+
+		if (hash.contentType !== false) {
 			delete hash.contentType;
 		}
 
@@ -61,5 +70,16 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, Image
 
 	addDefaultParams(/*query*/) {
 		return;
+	},
+
+	changeFilter(hash) {
+		const filterKey = this.get('hasManyFilterKey');
+		hash.data[filterKey] = {};
+		for (let i in hash.data.filter) {
+			if (hash.data.filter.hasOwnProperty(i)) {
+				hash.data[filterKey][i] = hash.data.filter[i].split(',');
+			}
+		}
+		delete hash.data.filter;
 	}
 });
