@@ -6,6 +6,8 @@ import Ember from 'ember';
 import DS from 'ember-data';
 import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';
 import RPCAdapterMixin from 'busy-data/mixins/rpc-adapter-mixin';
+import ImageAdapterMixin from 'busy-data/mixins/image-adapter-mixin';
+
 //import Configuration from './../configuration';
 //import assert from 'busy-utils/assert';
 
@@ -15,7 +17,7 @@ import RPCAdapterMixin from 'busy-data/mixins/rpc-adapter-mixin';
  *
  * @extends DS.JSONAPIAdapter
  */
-export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, {
+export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, ImageAdapterMixin, {
 	/**
 	 * sets the authorizer to use.
 	 *
@@ -40,6 +42,10 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, {
 		if(typeof data === 'string') {
 			isString = true;
 			data = JSON.parse(data);
+		}
+
+		if(hash.contentType !== false) {
+			delete hash.contentType;
 		}
 
 		if (!data.jsonrpc) {

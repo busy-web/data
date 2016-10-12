@@ -6,6 +6,9 @@ import Ember from 'ember';
 import assert from 'busy-utils/assert';
 import uuid from 'busy-utils/uuid';
 
+/***/
+const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord'];
+
 /**
  * `Mixins/JSONAPISerializer`
  *
@@ -51,7 +54,7 @@ export default Ember.Mixin.create({
 	convertResponse(store, primaryModelClass, payload, requestType) {
 		// get the data object or data array from the payload
 		let rawData = this.getDataFromResponse(payload, requestType);
-		if (requestType === 'findRecord' || requestType === 'queryRecord') {
+		if (singleRequest.indexOf(requestType) !== -1) {
 			if(rawData.length > 1) {
 				throw new Error(`${requestType} must not return more than 1 record`);
 			}
