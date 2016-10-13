@@ -5,7 +5,7 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import Manager from 'busy-data/utils/manager';
-import RpcStoreMixin from 'busy-data/mixins/rpc-store-mixin';
+import RpcStoreMixin from 'busy-data/mixins/rpc-store';
 
 /***/
 const kPageSize = 100;

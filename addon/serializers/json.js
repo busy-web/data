@@ -7,6 +7,13 @@ import DS from 'ember-data';
 import uuid from 'busy-utils/uuid';
 import JSONMixin from 'busy-data/mixins/json-api-serializer';
 
+/**
+ * `BusyData/Serializers/Json`
+ *
+ * @class Json
+ * @namespace BusyData.Serializers
+ * @extends DS.JSONAPISerializer
+ */
 export default DS.JSONAPISerializer.extend(JSONMixin, {
 	serializeAttribute(snapshot, json, key, attribute) {
 		const type = attribute.type;

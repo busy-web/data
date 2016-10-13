@@ -5,11 +5,6 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';
-import RPCAdapterMixin from 'busy-data/mixins/rpc-adapter-mixin';
-import ImageAdapterMixin from 'busy-data/mixins/image-adapter-mixin';
-
-//import Configuration from './../configuration';
-//import assert from 'busy-utils/assert';
 
 /**
  * @class
@@ -17,7 +12,7 @@ import ImageAdapterMixin from 'busy-data/mixins/image-adapter-mixin';
  *
  * @extends DS.JSONAPIAdapter
  */
-export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, ImageAdapterMixin, {
+export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	/**
 	 * sets the authorizer to use.
 	 *
@@ -29,8 +24,8 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, Image
 	 * @type string
 	 */
 	authorizer: 'authorizer:base',
-	coalesceFindRequests: true,
 	hasManyFilterKey: 'filter',
+	coalesceFindRequests: false,
 
 	pathForType(type) {
 		return Ember.String.dasherize(type);
@@ -53,14 +48,18 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, RPCAdapterMixin, Image
 			this.changeFilter(hash);
 		}
 
-		if (hash.contentType !== false) {
-			delete hash.contentType;
-		}
+			if (hash.contentType !== false) {
+				delete hash.contentType;
+			}
 
 		if (!data.jsonrpc) {
-			this.addDefaultParams(data);
+
+			if (hash.type === 'GET') {
+				this.addDefaultParams(data);
+			}
 			hash.data = data;
 		} else {
+      //hash.contentType = 'application/json; charset=utf-8';
 			hash.type = "POST";
 			hash.dataType = "json";
 		}

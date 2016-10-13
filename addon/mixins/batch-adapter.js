@@ -3,8 +3,8 @@
  *
  */
 import Ember from 'ember';
+import DS from 'ember-data';
 import Assert from 'busy-utils/assert';
-import UUID from 'busy-utils/uuid';
 
 /**
  * `BusyData/Mixins/BatchAdapter`
@@ -14,155 +14,366 @@ import UUID from 'busy-utils/uuid';
  * @extends Ember.Mixin
  */
 export default Ember.Mixin.create({
-	maxBatchSize: 10, // requests
-	maxBatchWait: 5, // miliseconds
+	/**
+	 * max request size for the batch
+	 *
+	 * @public
+	 * @property maxBatchSize
+	 * @type {number}
+	 */
+	maxBatchSize: 10,
 
+	/**
+	 * max wait time in millisecond for the batch to wait for more calls
+	 *
+	 * this should be small like 5 or 10 miliseconds.
+	 *
+	 * @public
+	 * @property maxBatchWait
+	 * @type {number}
+	 */
+	maxBatchWait: 5,
+
+	/**
+	 * toggle property for turning the batch on or off
+	 *
+	 * @public
+	 * @property isBatchEnabled
+	 * @type {boolean}
+	 */
+	isBatchEnabled: true,
+
+	/**
+	 * The run queue for waiting calls
+	 *
+	 * @private
+	 * @property queue
+	 * @type {array}
+	 */
 	queue: null,
-	waiting: false,
+
+	/**
+	 * Toggle to pause the run loop when it should wait for more calls to come in
+	 *
+	 * @private
+	 * @property waiting
+	 * @type {boolean}
+	 */
+	waiting: false, // wait status
 
 	init() {
-		this._super(...arguments);
+		// setup the queue
 		this.set('queue', Ember.A());
+		this._super(...arguments);
 	},
 
-	run() {
-		if (this.get('queue.length') >= this.get('maxBatchSize')) {
+	/**
+	 * Run loop for sendding and witing to send batch requests
+	 *
+	 * @private
+	 * @method run
+	 * @param expired {boolean} default: false - true if the timer is run out
+	 */
+	run(expired=false) {
+		Assert.isBoolean(expired);
+
+		// if waiting and the queue is greater or equal to maxBatchSize or the time to wait has expired
+		if ((expired && this.get('queue.length') > 0) || (this.get('queue.length') >= this.get('maxBatchSize'))) {
+			// get the queue and then clear the queue
 			const batch = this.get('queue');
 			this.set('queue', Ember.A());
+
+			// set waiting to false
 			this.set('waiting', false);
+
+			// send current batch results
 			this.sendBatch(batch);
-		}
-
-		Ember.run.later(this, function() {
-			this.run();
-		}, this.get('maxBatchWait'));
-	},
-
-	notifyQueue: Ember.observer('queue.[]', function() {
-		if (!this.get('waiting')) {
+		} else if (!this.get('waiting')) { // not waiting and a new call has entered the queue
+			// set waiting to true
 			this.set('waiting', true);
-			this.run();
-		}
-	}),
 
-	getName(url){
+			// set wait to maxBatchWait
+			Ember.run.later(this, function() {
+				// time expired call run
+				this.run(true);
+			}, this.get('maxBatchWait'));
+		}
+	},
+
+	/**
+	 * observer triggers the run method when a call is
+	 * added to the queue
+	 *
+	 * @private
+	 * @method notifyQueue
+	 */
+	notifyQueue: Ember.observer('queue.[]', function() {
+	 	this.run();
+ 	}),
+
+	/**
+	 * strips the baseurl and http info from the url and returns
+	 * the model name
+	 *
+	 * @public
+	 * @method getName
+	 * @param url {string}
+	 * @return {string}
+	 */
+	getName(url) {
+		Assert.funcNumArgs(arguments, 1, true);
+		Assert.isString(url);
+
+		// strip http and query params
 		let name = url.replace(/^https?:\/\/([^\?]*)[\s\S]*$/, '$1');
-		name = name.replace(/[^\/]*\/([\s\S]*)/, '$1');
-		return name;
+
+		// strip everything before the last slash
+		return name.replace(/[^\/]*\/([\s\S]*)/, '$1');
 	},
 
-	checksum(hash) {
-		let dataCheck = hash.url;
-		if (hash.data !== undefined) {
-			dataCheck += '-' + JSON.stringify(hash.data);
-		}
-		dataCheck += '-' + hash.type;
-		return btoa(dataCheck);
+	/**
+	 * Creates a checksum hash of the model call that can be compared
+	 * with another call to see if the call has been made.
+	 *
+	 * @public
+	 * @method checksum
+	 * @param url {string} ajax url string
+	 * @param type {string} ajax type string
+	 * @param data {object} ajax data object
+	 * @return {string} btoa hash
+	 */
+	checksum(url, type, data={}) {
+		Assert.funcNumArgs(arguments, 3);
+		Assert.isString(url);
+		Assert.isString(type);
+		Assert.isObject(data);
+
+		// stringify the data
+		const dataStr = JSON.stringify(data);
+
+		// return a btoa hash of the url + data + type
+		return btoa(`${url}-${dataStr}-${type}`);
 	},
 
+	/**
+	 * Prepares each call stored in the queue to be batched in a
+	 * single rpc call to the api.
+	 *
+	 * @private
+	 * @method prepareBatch
+	 * @param batch {array}
+	 * @return {object} { requests, responses, hashMap }
+	 */
 	prepareBatch(batch) {
 		Assert.funcNumArgs(arguments, 1, true);
 		Assert.isArray(batch);
 
 		const requests = {};
+		const hashMap = {};
 		const responses = [];
+		let count = 1;
 		batch.forEach(hash => {
-			const hashKey = this.checksum(hash);
-			const urlName = this.getName(hash.url);
-			const hashName = UUID.generate();
+			// create a hashkey for this models query so
+			// if two identical calls come in the call only gets made once.
+			const hashKey = this.checksum(hash.url, hash.type, hash.data);
+			if (Ember.isNone(hashMap[hashKey])) {
+				// get the url type and data for this call
+				const url = this.getName(hash.url);
+				const { type, data } = hash;
 
-			if (Ember.isNone(requests[hashKey])) {
-				const reqObject = {
-					method: hash.type,
-					data: hash.data,
-					url: urlName,
-					_version: this.get('version')
-				};
+				// create the request object.
+				const reqObject = { url, method: type, data };
 
-				if (this.get('debug')) {
-					reqObject._debug = true;
-				}
+				// add adition app specific params like: version number...
+				this.addBatchParams(reqObject);
 
-				requests[hashKey] = reqObject;
+				// create unique key for model type
+				const key = `${url}-${count}`;
+
+				// add the request and set the key on the hashMap
+				requests[key] = reqObject;
+				hashMap[hashKey] = key;
+
+				count++;
 			}
 
-			const hashObject = { hash, hashKey, urlName, hashName };
-			responses.push(hashObject);
+			responses.push({ hash, hashKey });
 		});
 
-		return { requests, responses };
+		return { requests, responses, hashMap };
 	},
 
+	/**
+	 * Sends a batch of api calls to the api with and rpc style call
+	 *
+	 * @private
+	 * @method sendBatch
+	 * @param batch {array}
+	 */
 	sendBatch(batch) {
+		Assert.funcNumArgs(arguments, 1, true);
+		Assert.isArray(batch);
+
+		// get the url
 		const url = this.buildURL('batch');
+
+		// prepare the batched calls
 		const req = this.prepareBatch(batch);
 
-		const request = {};
-		request.method = 'batch-rest';
-		request.params = req.requests;
-		request.id = 1;
-		request.jsonrpc = '2.0';
+		// set up the rpc data
+		const options = {
+			data: {
+				method: 'batch-rest',
+				params: {
+					requests: req.requests
+				},
+				id: 1,
+				jsonrpc: '2.0'
+			}
+		};
 
-		const hash = this.ajaxOptions(url, 'POST', request);
-		hash.data = JSON.stringify(request);
-		//hash.type = "POST";
-		hash.dataType = "json";
+		// get options and set callbacks
+		const hash = this.ajaxOptions(url, 'POST', options);
 
 		var _this = this;
-		hash.success = function(result, textStatus, jqXHR) {
-			return _this.success(result.result, req.responses, jqXHR);
+		hash.success = function(payload, textStatus, jqXHR) {
+			_this.success(payload.result, req, textStatus, jqXHR);
+		};
+		hash.error = function(jqXHR, textStatus, errorThrown) {
+			_this.error(jqXHR, textStatus, errorThrown);
 		};
 
-		hash.error = function() {
-			return _this.error.apply(_this, arguments);
-		};
-
+		// send ajax call
 		Ember.$.ajax(hash);
 	},
 
+	/**
+	 * Ember _ajaxRequest override to pause calls for the batch to collect
+	 * them and send in bulk.
+	 *
+	 * @private
+	 * @method _ajaxRequest
+	 * @param hash
+	 */
 	_ajaxRequest(hash) {
-		this.get('queue').pushObject(hash);
-
-		if (this.get('queue.length') >= this.get('maxBatchSize')) {
-			this.sendBatch();
+		if (this.get('isBatchEnabled') === true && Ember.get(hash, 'disableBatch') !== true) {
+			this.get('queue').pushObject(hash);
+		} else {
+			this._super(...arguments);
 		}
 	},
 
-	dispatchResponse(key, response, responseHandlers, jqXHR) {
-		if (responseHandlers[key] !== undefined) {
-			// get this response's handlers
-			const handlers = responseHandlers[key];
-			Ember.$.each(handlers, (index, handler) => {
-				if (handlers.hasOwnProperty(index)) {
-					const textStatus = response.success ? 'success' : 'error';
-					handler.hash.success.call(handler.hash.context, response, textStatus, jqXHR);
+	/**
+	 * handles the success callback for the ajax response
+	 *
+	 * @private
+	 * @method success
+	 * @param response {object}
+	 * @param handler {object}
+	 * @param textStatus {string}
+	 * @param jqXHR {object}
+	 */
+	success(response, handler, textStatus, jqXHR) {
+		Assert.funcNumArgs(arguments, 4, true);
+		Assert.isObject(response);
+		Assert.isObject(handler);
+		Assert.isString(textStatus);
+		Assert.isObject(jqXHR);
+
+		const gStatus = Ember.get(jqXHR, 'status');
+		const gStatusText = Ember.get(jqXHR, 'statusText') || textStatus;
+		// make sure batch response is good
+		if (Ember.get(response, 'success') === true) {
+			// get the response results
+			const results = Ember.get(response, 'data.results') || {};
+			handler.responses.forEach(item => {
+				// get the key from the hashMap and use that
+				// to get the data for this items call
+				const key = handler.hashMap[item.hashKey];
+				const data = Ember.get(results, key);
+				const status = this.getBatchStatusForModel(data, gStatus);
+				const statusText = this.getBatchStatusTextForModel(data, gStatusText);
+
+				// create an xhr response for this model
+				const xhr = Object.assign({}, jqXHR);
+				xhr.statusText = statusText;
+				xhr.status = status;
+				xhr.responseText = JSON.stringify(data);
+				xhr.responseJSON = data;
+
+				// get the context model to call success or error on.
+				const hash = item.hash;
+				const context = hash.context;
+				if (status === 200) {
+					hash.success.call(context, data, 'success', xhr);
+				} else {
+					hash.error.call(context, xhr, 'error', xhr.statusText);
 				}
 			});
 		} else {
-			// key not found
-			Ember.warn('There was a propblem calling the success method for [' + key + ']');
+			this.handleError(jqXHR);
 		}
 	},
 
-	success(response, responseHandlers, jqXHR) {
-		if (response.success) {
-			// dispatch each respsonse
-			const results = response.data.results;
-			Ember.$.each(results, (key, val) => {
-				if (results.hasOwnProperty(key)) {
-					this.dispatchResponse(key, val, responseHandlers, jqXHR);
-				}
-			});
-		} else {
-			Ember.Logger.error('error', response);
-		}
+	/**
+	 * Gets the statusText from a specific call in the batch response
+	 *
+	 * This method can be ovveridden to provide the statusText for different
+	 * object structures.
+	 *
+	 * @public
+	 * @method getBatchStatusTextForModel
+	 * @param result {object} a data response from the batch call
+	 * @return {string} the statusText
+	 */
+	getBatchStatusTextForModel(result, defaultValue) {
+		Assert.isObject(result);
+
+		return Ember.get(result, 'statusText') || defaultValue;
 	},
 
-	error(err) {
-		if (err.status === 401) {
-			this.get('dataService').invalidateSession();
-		} else {
-			Ember.Logger.error('error', err);
+	/**
+	 * Gets the status from a specific call in the batch response
+	 *
+	 * This method can be ovveridden to provide the status for different
+	 * object structures.
+	 *
+	 * @public
+	 * @method getBatchStatusForModel
+	 * @param result {object} a data response from the batch call
+	 * @return {number} the status
+	 */
+	getBatchStatusForModel(result, defaultValue) {
+		Assert.isObject(result);
+
+		return Ember.get(result, 'status') || defaultValue;
+	},
+
+	/**
+	 * handles errors for the batch call itself
+	 *
+	 * @private
+	 * @method handleError
+	 * @param responseData {object} xhr data object
+	 */
+	handleError(responseData) {
+		Assert.funcNumArgs(arguments, 1, true);
+		Assert.isObject(responseData);
+
+    if (responseData.status === 401 && this.get('session.isAuthenticated')) {
+      this.get('session').invalidate();
+    } else {
+			let error;
+			if (responseData.errorThrown instanceof Error) {
+				error = responseData.errorThrown;
+			} else if (responseData.textStatus === 'timeout') {
+				error = new DS.TimeoutError();
+			} else if (responseData.textStatus === 'abort') {
+				error = new DS.AbortError();
+			} else {
+				error = new Error(`BATCH ERROR: ${responseData.responseText}`);
+			}
+			throw error;
 		}
 	}
 });

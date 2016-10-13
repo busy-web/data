@@ -1,5 +1,17 @@
+/**
+ * @module Mixins
+ *
+ */
 import Ember from 'ember';
+import Assert from 'busy-utils/assert';
 
+/**
+ * `BusyData/Mixins/ImageAdapter`
+ *
+ * @class ImageAdapter
+ * @namespace BusyData.Mixins
+ * @extends Ember.Mixin
+ */
 export default Ember.Mixin.create({
 	/**
 	 * sets up the parameters for the ajax call
@@ -42,6 +54,9 @@ export default Ember.Mixin.create({
 	 * @returns {object}
 	 */
 	setupUpload(hash) {
+		Assert.funcNumArgs(arguments, 1, true);
+		Assert.isObject(hash);
+
 		// gets the fileObject from the hash.data object
 		// that was created in the serializer.serializeIntoHash
 		// The fileObject has event listeners for uploadStart,
@@ -89,6 +104,9 @@ export default Ember.Mixin.create({
 	 * @returns {object}
 	 */
 	convertDataForUpload(data) {
+		Assert.funcNumArgs(arguments, 1, true);
+		Assert.isObject(data);
+
 		const formData = new FormData();
 		Ember.$.each(data, (key, val) => {
 			if (data.hasOwnProperty(key)) {
