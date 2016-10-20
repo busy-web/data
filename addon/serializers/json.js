@@ -35,7 +35,7 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 				value = (new Date()).valueOf()/1000;
 			}
 
-			if (!Ember.isNone(value) && value.hasOwnProperty('file') && value.file instanceof File) {
+			if (!isNone(value) && value.hasOwnProperty('file') && (value.file instanceof File || value.file instanceof Blob)) {
 				json._fileObject = value;
 				value = value.get('file');
 
