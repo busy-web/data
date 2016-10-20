@@ -170,7 +170,7 @@ export default DS.RESTSerializer.extend({
 				value = this.utcTime();
 			}
 
-			if (!isNone(value) && value.hasOwnProperty('file') && value.file instanceof File) {
+			if (!isNone(value) && value.hasOwnProperty('file') && (value.file instanceof File || value.file instanceof Blob)) {
 				json._fileObject = value;
 				value = value.get('file');
 
