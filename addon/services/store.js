@@ -265,14 +265,14 @@ export default DS.Store.extend({
 
 			promise = _guard(promise, _bind(isAlive, store));
 
-			return promise.then(adapterPayload => {
+			return promise.then(function(adapterPayload) {
 				// Some rpc calls dont return an object. These calls
 				// can return a bool or just a value. This checks for them
 				// and returns the value as and object with a generated id
 				// and a value key.
 				if (!Ember.isNone(adapterPayload.data) && typeof adapterPayload.data !== 'object') {
 					adapterPayload.data = {
-						id: this.rpcId(),
+						id: store.rpcId(),
 						value: adapterPayload.data
 					};
 				}
@@ -283,7 +283,7 @@ export default DS.Store.extend({
 				}
 
 				let records, payload;
-				store._adapterRun(() => {
+				store._adapterRun(function() {
 					payload = serializer.normalizeResponse(store, typeClass, adapterPayload, null, 'query');
 					//TODO Optimize
 					records = store.push(payload);
