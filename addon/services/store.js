@@ -46,7 +46,7 @@ export default DS.Store.extend({
 		});
 	},
 
-	queryRecord: function(modelType, query) {
+	queryRecord(modelType, query) {
 		return this.query(modelType, query).then(data => {
 			Ember.assert('queryRecord expects at most one model to be returned', data.get('length') <= 1);
 			return data.objectAt(0);
@@ -265,7 +265,7 @@ export default DS.Store.extend({
 
 			promise = _guard(promise, _bind(isAlive, store));
 
-			return promise.then(function (adapterPayload) {
+			return promise.then(adapterPayload => {
 				// Some rpc calls dont return an object. These calls
 				// can return a bool or just a value. This checks for them
 				// and returns the value as and object with a generated id
@@ -283,11 +283,12 @@ export default DS.Store.extend({
 				}
 
 				let records, payload;
-				store._adapterRun(function () {
+				store._adapterRun(() => {
 					payload = serializer.normalizeResponse(store, typeClass, adapterPayload, null, 'query');
 					//TODO Optimize
 					records = store.push(payload);
 				});
+
 				recordArray.loadRecords(records, payload);
 				return recordArray;
 			}, null, "DS: Extract payload of rpcQuery " + typeClass);
