@@ -83,17 +83,17 @@ export default Ember.Mixin.create({
 			const batch = this.get('queue');
 			this.set('queue', Ember.A());
 
-			// set waiting to false
-			this.set('waiting', false);
-
 			// send current batch results
 			this.sendBatch(batch);
-		} else if (!this.get('waiting')) { // not waiting and a new call has entered the queue
+		} else if (this.get('queue.length') > 0 && !this.get('waiting')) { // not waiting and a new call has entered the queue
 			// set waiting to true
 			this.set('waiting', true);
 
 			// set wait to maxBatchWait
 			Ember.run.later(this, function() {
+				// set waiting to false
+				this.set('waiting', false);
+
 				// time expired call run
 				this.run(true);
 			}, this.get('maxBatchWait'));
