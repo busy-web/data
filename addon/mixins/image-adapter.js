@@ -83,6 +83,9 @@ export default Ember.Mixin.create({
 		hash.contentType = false;
 		hash.processData = false;
 
+		// dont allow batch call
+		hash.disableBatch = true;
+
 		// set the xhr function to report
 		// upload progress
 		hash.xhr = () => {
