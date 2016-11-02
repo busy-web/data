@@ -77,6 +77,10 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 		};
 	},
 
+	warnMessageForUndefinedType() {
+		return 'Type is undefined';
+	},
+
 	serializeIntoHash(hash, type, snapshot, options) {
 		const dataHash = this.serialize(snapshot, options, true);
 		for(let key in dataHash.data) {
