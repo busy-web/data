@@ -81,6 +81,31 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 		return 'Type is undefined';
 	},
 
+	serialize(snapshot, options) {
+		const data = {};
+
+		if (options && options.includeId) {
+			const id = snapshot.id;
+			if (id) {
+				data[Ember.get(this, 'primaryKey')] = id;
+			}
+		}
+
+		snapshot.eachAttribute((key, attribute) => {
+			this.serializeAttribute(snapshot, data, key, attribute);
+		});
+
+		snapshot.eachRelationship((key, relationship) => {
+			if (relationship.kind === 'belongsTo') {
+				this.serializeBelongsTo(snapshot, data, relationship);
+			} else if (relationship.kind === 'hasMany') {
+				this.serializeHasMany(snapshot, data, relationship);
+			}
+		});
+
+		return { data };
+	},
+
 	serializeIntoHash(hash, type, snapshot, options) {
 		const dataHash = this.serialize(snapshot, options, true);
 		for(let key in dataHash.data) {
