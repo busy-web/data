@@ -200,6 +200,12 @@ export default Ember.Mixin.create({
 						// get the nested model
 						obj = this.buildNested(store, modelName, i, value, included);
 					}
+
+					// force a proper return type from bad apis without consistency.
+					if (Ember.isEmpty(obj)) {
+						obj = this.getModelReturnType(store, modelName, i);
+					}
+
 					// add the relationship
 					Ember.set(model.relationships, i, { data: obj});
 				} else {
@@ -209,6 +215,16 @@ export default Ember.Mixin.create({
 			}
 		}
 		return model;
+	},
+
+	getModelReturnType(store, modelName, attr) {
+		const record = store.createRecord(modelName, {});
+		const relationship = record.relationshipFor(attr);
+		if(relationship.kind === 'hasMany') {
+			return [];
+		} else {
+			return null;
+		}
 	},
 
 	/**
