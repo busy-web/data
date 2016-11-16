@@ -240,7 +240,7 @@ export default Ember.Mixin.create({
 			_this.success(payload.result, req, textStatus, jqXHR);
 		};
 		hash.error = function(jqXHR, textStatus, errorThrown) {
-			_this.error(jqXHR, textStatus, errorThrown);
+			_this.handleError(jqXHR, textStatus, errorThrown);
 		};
 
 		// send ajax call
@@ -350,28 +350,30 @@ export default Ember.Mixin.create({
 	},
 
 	/**
-	 * handles errors for the batch call itself
+	 * handles errors for the batch call itself then throws
+	 * an error or invalidates the session if not authorized.
 	 *
 	 * @private
 	 * @method handleError
-	 * @param responseData {object} xhr data object
+	 * @param jqXHR {object} api response object
+	 * @param textStatus {string} error status string
+	 * @param errorThrown {string} error message
 	 */
-	handleError(responseData) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isObject(responseData);
-
-    if (responseData.status === 401 && this.get('session.isAuthenticated')) {
+	handleError(jqXHR, textStatus, errorThrown) {
+    if (jqXHR.status === 401 && this.get('session.isAuthenticated')) {
       this.get('session').invalidate();
     } else {
 			let error;
-			if (responseData.errorThrown instanceof Error) {
-				error = responseData.errorThrown;
-			} else if (responseData.textStatus === 'timeout') {
+			if (errorThrown instanceof Error) {
+				error = errorThrown;
+			} else if (textStatus === 'timeout') {
 				error = new DS.TimeoutError();
-			} else if (responseData.textStatus === 'abort') {
+			} else if (textStatus === 'abort') {
 				error = new DS.AbortError();
+			} else if (textStatus === 'error') {
+				error = new Error(`BATCH ERROR: ${errorThrown}`);
 			} else {
-				error = new Error(`BATCH ERROR: ${responseData.responseText}`);
+				error = new Error(`BATCH ERROR: ${jqXHR.responseText}`);
 			}
 			throw error;
 		}
