@@ -5,7 +5,7 @@
 import Ember from 'ember';
 import Helper from 'busy-data/utils/helpers';
 
-const {getModelProperty} = Helper;
+const { getModelProperty } = Helper;
 
 
 /**
@@ -237,7 +237,7 @@ export default Ember.Object.extend(
 								parentModel = Ember.get(parentModel, 'value');
 							}
 
-							if (Ember.get(parentModel, 'isLoaded') === true) {
+							if (Ember.get(parentModel, 'isLoaded') === true || Ember.get(parentModel, 'content.isLoaded') === true) {
 								requests[alias] = this.dispatchCall(type, item, parentModel);
 								remove.pushObject(item);
 								this.finishedList.unshiftObject(item);

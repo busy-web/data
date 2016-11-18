@@ -5,7 +5,7 @@
 import Ember from 'ember';
 import RequestHandler from 'busy-data/utils/request-handler';
 import Helper from 'busy-data/utils/helpers';
-import Assert from 'busy-utils/assert';
+import { Assert } from 'busy-utils';
 
 const {getModelProperty, setModelProperty, generateModelPath, generateId, mergeObject} = Helper;
 
@@ -99,14 +99,16 @@ export default Ember.Object.extend(
 		Assert.test('You must have a record type to call a `get` join model for that record', !Ember.isNone(lastOperation));
 
 		// get the join data from the last operations model
+		const owner = Ember.getOwner(this);
 		const modelName = lastOperation.get('modelType');
-		const model = this.store.createRecord(modelName, {});
-		const val = model.get(key);
+		const model = owner._lookupFactory('model:' + Ember.String.dasherize(modelName));
+		const meta = model.metaForProperty(key);
+		const opts = meta.join;
 
 		// throw error if not a valid join object
-		Assert.test(`get did not find a valid join param at key [${key}]`, !Ember.isNone(val) && typeof val === 'object' && val._isJoin === true);
+		Assert.test(`get did not find a valid join param at key [${key}]`, !Ember.isNone(opts) && typeof opts === 'object' && opts._isJoin === true);
 
-		this[val.method].call(this, val.modelType, val.join, val.joinOn, {}, key);
+		this[opts.method].call(this, opts.modelType, modelName, opts.joinOn, opts.query, key);
 	},
 
 	get(key) {
@@ -271,7 +273,7 @@ export default Ember.Object.extend(
 		tries = tries || 0;
 
 		const length = operations.get('length');
-		if (length === 0 || tries >= 10) {
+		if (length === 0 || tries >= 100) {
 			return Ember.RSVP.resolve(parents);
 		}
 
