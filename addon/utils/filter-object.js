@@ -3,15 +3,14 @@
  *
  */
 import Ember from 'ember';
-import { Time } from 'busy-utils';
 
 export default Ember.ObjectProxy.extend({
-
-//	unknownProperty() {
-//		const property = this._super(...arguments);
-//
-//		console.log('filterObject', property, arguments);
-//
-//		return property;
-//	}
+	unknownProperty(key) {
+		let result = this._super(...arguments);
+		const getter = this[`${key}Getter`];
+		if (typeof getter === 'function') {
+			result = getter.call(this, result);
+		}
+		return result;
+	}
 });

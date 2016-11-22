@@ -56,7 +56,7 @@ export default Ember.Mixin.create({
 		let rawData = this.getDataFromResponse(payload, requestType);
 		if (singleRequest.indexOf(requestType) !== -1) {
 			if(rawData.length > 1) {
-				throw new Error(`${requestType} must not return more than 1 record`);
+				throw new Error(`${requestType} must not return more than 1 record in Model [${primaryModelClass.modelName}]`);
 			}
 
 			rawData = rawData[0];
@@ -248,6 +248,8 @@ export default Ember.Mixin.create({
 
 			// for a belongsTo relationship set the data as an object with `id` and `type`
 			if (opts.kind === 'belongsTo') {
+				Ember.assert(`belongsTo must reference the parent model id for DS.belongsTo('${opts.key}') in Model ${primaryModelClass.modelName}`, key === 'id');
+
 				// create data object
 				let _data = null;
 
@@ -255,7 +257,7 @@ export default Ember.Mixin.create({
 					_data = { type: opts.type };
 
 					// add id for data object
-					_data[key] = id;
+					_data.id = id;
 				}
 
 				// set the data object for the relationship

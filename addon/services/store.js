@@ -17,6 +17,13 @@ const kPageSize = 100;
 export default DS.Store.extend(RpcStoreMixin, {
 	_maxPageSize: kPageSize,
 
+	fetchRecord(internalModel, options) {
+		if (!internalModel.id) {
+			debugger;
+		}
+		return this._super(...arguments);
+	},
+
 	findAll(modelType, query={}) {
 		query.page_size = query.page_size || this._maxPageSize;
 		query.page = query.page || 1;
@@ -52,14 +59,16 @@ export default DS.Store.extend(RpcStoreMixin, {
 		});
 	},
 
-	addFilterType(type, model) {
+	addFilterType(type, model, args) {
 		const owner = Ember.getOwner(this);
 		const Filter = owner._lookupFactory(`filter:${type}`);
 
 		if (Ember.isArray(model)) {
 			const modelArray = Ember.A();
 			model.forEach(item => {
-				modelArray.pushObject(Filter.create({content: item}));
+				const f = Filter.create({content: item});
+				f.setProperties(args);
+				modelArray.pushObject(f);
 			});
 			return modelArray;
 		} else {
