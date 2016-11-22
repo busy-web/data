@@ -36,7 +36,7 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	normalizeResponse(store, primaryModelClass, payload, id, requestType) {
-		const response = this.convertResponse(store, primaryModelClass, payload, requestType);
+		const response = this.convertResponse(store, primaryModelClass, payload, id, requestType);
 		return this._super(store, primaryModelClass, response, id, requestType);
 	},
 
@@ -51,14 +51,20 @@ export default Ember.Mixin.create({
 	 * @param requestType {string} ember data request type
 	 * @return {object}
 	 */
-	convertResponse(store, primaryModelClass, payload, requestType) {
+	convertResponse(store, primaryModelClass, payload, id, requestType) {
 		// get the data object or data array from the payload
 		let rawData = this.getDataFromResponse(payload, requestType);
 		if (singleRequest.indexOf(requestType) !== -1) {
 			if(rawData.length > 1) {
 				throw new Error(`${requestType} must not return more than 1 record`);
 			}
+
 			rawData = rawData[0];
+			if (Ember.isNone(rawData) && !Ember.isNone(id)) {
+				rawData = {id: id};
+			} else if (Ember.isNone(rawData)) {
+				rawData = {};
+			}
 		}
 
 		// get the meta properties as an object from the payload
@@ -135,11 +141,11 @@ export default Ember.Mixin.create({
 			// parse the data array objects
 			_data = [];
 			data.forEach(item => {
-				_data.push(this.buildJSON(store, type, type, item, included));
+				_data.push(this.buildJSON(store, primaryModelClass, type, item, included));
 			});
 		} else {
 			// parse the data object
-			_data = this.buildJSON(store, type, type, data, included);
+			_data = this.buildJSON(store, primaryModelClass, type, data, included);
 		}
 
 		// set the included data array
@@ -165,9 +171,8 @@ export default Ember.Mixin.create({
 	 * @param included {array} Included property for the json-api object
 	 * @return {object}
 	 */
-	buildJSON(store, modelName, type, json, included) {
+	buildJSON(store, primaryModelClass, type, json, included) {
 		assert.funcNumArgs(arguments, 5, true);
-		assert.isString(modelName);
 		assert.isString(type);
 		assert.isObject(json);
 		assert.isArray(included);
@@ -177,9 +182,9 @@ export default Ember.Mixin.create({
 		// create a data type object
 		const model = {
 			id: Ember.get(json, primaryKey),
-			type: this.nestedModelName(store, modelName, type),
+			type: this.nestedModelName(store, primaryModelClass, type),
 			attributes: {},
-			relationships: {}
+			relationships: this.addRelationships(store, primaryModelClass, json)
 		};
 
 		// find all attributes and nested models
@@ -192,22 +197,20 @@ export default Ember.Mixin.create({
 					// embers typeOf will tell if the object is an array
 					if (Ember.typeOf(value) === 'array') {
 						// get the nested models
-						obj = this.buildNestedArray(store, modelName, i, value, included);
+						obj = this.buildNestedArray(store, primaryModelClass, i, value, included);
 					} else {
 						if (!Ember.get(value, primaryKey)) {
 							value.id = uuid.generate();
 						}
 						// get the nested model
-						obj = this.buildNested(store, modelName, i, value, included);
+						obj = this.buildNested(store, primaryModelClass, i, value, included);
 					}
 
-					// force a proper return type from bad apis without consistency.
-					if (Ember.isEmpty(obj)) {
-						obj = this.getModelReturnType(store, modelName, i);
+					// add the obj to the relationship if it exists
+					if (!Ember.isEmpty(obj)) {
+						// add the relationship
+						Ember.set(model.relationships, i, { data: obj });
 					}
-
-					// add the relationship
-					Ember.set(model.relationships, i, { data: obj});
 				} else {
 					// add the property
 					Ember.set(model.attributes, i, value);
@@ -217,10 +220,85 @@ export default Ember.Mixin.create({
 		return model;
 	},
 
-	getModelReturnType(store, modelName, attr) {
-		const record = store.createRecord(modelName, {});
-		const relationship = record.relationshipFor(attr);
-		if(relationship.kind === 'hasMany') {
+	addRelationships(store, primaryModelClass, json) {
+		const data = {};
+		primaryModelClass.eachRelationship((type, opts) => {
+			// get the model name + -id and underscore it.
+			let name = Ember.String.underscore(`${opts.type}-id`);
+
+			// the key should be `id`
+			let key = 'id';
+			if (opts.options.referenceKey) {
+				// if the referenceKey is id then the key should be the model name + `-id` underscored
+				if (opts.options.referenceKey === 'id') {
+					key = Ember.String.underscore(`${primaryModelClass.modelName}-id`);
+				}
+				// set the name to the referenceKey
+				name = Ember.String.underscore(opts.options.referenceKey);
+			}
+
+			// foreignKey overrides all other key forms if set.
+			// the key order ends up as (in order of override):  id, parent_model_name_id, foreign_key
+			if (opts.options.foreignKey) {
+				key = opts.options.foreignKey;
+			}
+
+			// get the id from the json object if it is set
+			const id = Ember.get(json, name);
+
+			// for a belongsTo relationship set the data as an object with `id` and `type`
+			if (opts.kind === 'belongsTo') {
+				// create data object
+				let _data = null;
+
+				if (!Ember.isNone(id)) {
+					_data = { type: opts.type };
+
+					// add id for data object
+					_data[key] = id;
+				}
+
+				// set the data object for the relationship
+				data[Ember.String.dasherize(opts.key)] = {data: _data};
+			} else if (opts.kind === 'hasMany') { // for a has many set the data to an empty array
+				// create data object
+				let _data = {};
+				let link = '';
+				if (!Ember.isNone(opts.options.query)) {
+					const keys = Object.keys(opts.options.query);
+					keys.forEach(item => {
+						link += `&${item}=${opts.options.query[item]}`;
+					});
+				}
+
+				if (!Ember.isNone(id)) {
+					// add id for data object
+					link += `&${key}=${id}`;
+				}
+
+				if (!Ember.isEmpty(link)) {
+					link = link.replace(/^&/, '?');
+					_data.links = { related: `/${opts.type}${link}` };
+				} else {
+					_data.data = [];
+				}
+
+				data[Ember.String.dasherize(opts.key)] = _data;
+			}
+		});
+
+		return data;
+	},
+
+	getModelReturnType(store, primaryModelClass, attr) {
+		let kind = 'belongsTo';
+		primaryModelClass.eachRelationship((key, opts) => {
+			if (key === attr) {
+				kind = opts.kind;
+			}
+		});
+
+		if(kind === 'hasMany') {
 			return [];
 		} else {
 			return null;
@@ -240,22 +318,21 @@ export default Ember.Mixin.create({
 	 * @param included {array} Included property for the json-api object
 	 * @return {object}
 	 */
-	buildNested(store, modelName, type, json, included) {
+	buildNested(store, primaryModelClass, type, json, included) {
 		assert.funcNumArgs(arguments, 5, true);
-		assert.isString(modelName);
 		assert.isString(type);
 		assert.isObject(json);
 		assert.isArray(included);
 
 		// create the actual data model
-		const _data = this.buildJSON(store, modelName, type, json, included);
+		const _data = this.buildJSON(store, primaryModelClass, type, json, included);
 
 		// add the data model to the included array
 		included.push(_data);
 
 		// create a relationship model representation
 		const model = {
-			type: this.nestedModelName(store, modelName, type),
+			type: this.nestedModelName(store, primaryModelClass, type),
 			id: _data.id
 		};
 
@@ -275,9 +352,8 @@ export default Ember.Mixin.create({
 	 * @param included {array} Included property for the json-api object
 	 * @return {object}
 	 */
-	buildNestedArray(store, modelName, type, json, included) {
+	buildNestedArray(store, primaryModelClass, type, json, included) {
 		assert.funcNumArgs(arguments, 5, true);
-		assert.isString(modelName);
 		assert.isString(type);
 		assert.isArray(json);
 		assert.isArray(included);
@@ -286,7 +362,7 @@ export default Ember.Mixin.create({
 
 		json.forEach(item => {
 			// get the relationship data
-			const model = this.buildNested(store, modelName, type, item, included);
+			const model = this.buildNested(store, primaryModelClass, type, item, included);
 
 			// add the relationships to the data return
 			data.push(model);
@@ -296,25 +372,16 @@ export default Ember.Mixin.create({
 		return data;
 	},
 
-	nestedModelName(store, modelType, payloadKey) {
-		if (modelType === payloadKey) {
+	nestedModelName(store, primaryModelClass, payloadKey) {
+		if (primaryModelClass.modelName === payloadKey) {
 			return payloadKey;
 		} else {
-			let model;
-			if (/rpc/.test(modelType)) {
-				model = store.rpcModelFor(modelType);
-			} else {
-				model = store.modelFor(modelType);
-			}
-
-			const map = Ember.get(model, 'relationships');
 			let result = payloadKey;
-			map.forEach((item, key) => {
-				if (payloadKey === item.objectAt(0).name) {
-					result = key;
+			primaryModelClass.eachRelationship((key, opts) => {
+				if (payloadKey === key) {
+					result = opts.type;
 				}
 			});
-
 			return result;
 		}
 	},

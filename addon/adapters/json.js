@@ -25,7 +25,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	 */
 	authorizer: 'authorizer:base',
 	hasManyFilterKey: 'filter',
-	coalesceFindRequests: false,
+	coalesceFindRequests: true,
 
 	pathForType(type) {
 		return Ember.String.dasherize(type);
@@ -34,10 +34,26 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	version: 1,
 	debug: false,
 
-	ajaxOptions(/*url, type, options*/) {
+	ajaxOptions() {
 		const hash = this._super(...arguments);
 
-		let data = hash.data;
+		// split the params from the url
+		const [url, params] = hash.url.split('?');
+
+		// add url parms like version or debug
+		hash.url = this.addUrlParams(url);
+
+		// put the params back on the url string but first check
+		// to see if the start `?` query params symbol is already there.
+		if (!Ember.isEmpty(params)) {
+			if (!/\?/.test(hash.url)) {
+				hash.url = hash.url + '?' + params;
+			} else {
+				hash.url = hash.url + '&' + params;
+			}
+		}
+
+		let data = hash.data || {};
 		let isString = false;
 		if (typeof data === 'string') {
 			isString = true;
@@ -48,12 +64,11 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 			this.changeFilter(hash);
 		}
 
-			if (hash.contentType !== false) {
-				delete hash.contentType;
-			}
+		if (hash.contentType !== false) {
+			delete hash.contentType;
+		}
 
 		if (!data.jsonrpc) {
-
 			if (hash.type === 'GET') {
 				this.addDefaultParams(data);
 			}

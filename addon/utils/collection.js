@@ -11,30 +11,22 @@ const {generateId} = Helper;
  * `Collection\Collection`
  *
  */
-export default Ember.ArrayProxy.extend(Ember.Evented,
-{
+export default Ember.ArrayProxy.extend(Ember.Evented, {
 	content: null,
-
 	store: null,
-
 	manager: null,
 
 	isLoading: false,
 	isUpdating: false,
 
-	update: function()
-	{
+	update() {
 		this.set('isUpdating', true);
-
-		var _this = this;
-		this.manager.update().then(function()
-		{
-			_this.set('isUpdating', false);
+		this.manager.update().then(() => {
+			this.set('isUpdating', false);
 		});
 	},
 
-	buildModels: function(data)
-	{
+	buildModels(data) {
 		return data;
 	},
 
@@ -42,14 +34,12 @@ export default Ember.ArrayProxy.extend(Ember.Evented,
 		return Ember.RSVP.resolve();
 	},
 
-	createPolymorph: function(type)
-	{
-		var owner = Ember.getOwner(this);
-
-		var Polymorph = owner._lookupFactory('polymorph:' + Ember.String.dasherize(type));
-
-		var polymorph = Polymorph.create({
+	createPolymorph(type, content) {
+		const owner = Ember.getOwner(this);
+		const Polymorph = owner._lookupFactory('polymorph:' + Ember.String.dasherize(type));
+		const polymorph = Polymorph.create({
 			store: this.store,
+			content: content,
 			manager: this,
 			getter: this,
 			id: generateId(),
@@ -59,53 +49,36 @@ export default Ember.ArrayProxy.extend(Ember.Evented,
 		return polymorph;
 	},
 
-	populateModels: function(data)
-	{
+	populateModels(data) {
 		this.set('isLoading', true);
-
-		var models = this.buildModels(data);
-
-		if(!Ember.isNone(models.forEach))
-		{
-			models.forEach(function(model)
-			{
+		const models = this.buildModels(data);
+		if (!Ember.isNone(models.forEach)) {
+			models.forEach(model => {
 				this.addInternalModel(model);
-			}, this);
-		}
-		else
-		{
+			});
+		} else {
 			this.set('model', models);
 		}
-
 		this.set('isLoading', false);
-
 		return this;
 	},
 
-	objectAtContent: function(index)
-	{
-		var content = Ember.get(this, 'content');
-
+	objectAtContent(index) {
+		const content = Ember.get(this, 'content');
 		return content.objectAt(index);
 	},
 
-	addInternalModel: function(model, idx)
-	{
-		if(idx !== undefined)
-		{
+	addInternalModel(model, idx) {
+		if (idx !== undefined) {
 			this.get('content').removeAt(idx, 1);
 			this.get('content').insertAt(idx, model);
-		}
-		else
-		{
+		} else {
 			this.get('content').pushObject(model);
 		}
-
 		return this;
 	},
 
-	removeInternalModel: function(model)
-	{
+	removeInternalModel(model) {
 		this.get('content').removeObject(model);
 		return this;
 	},

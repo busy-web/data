@@ -46,7 +46,7 @@
   ],
   "dependencies": {
     "busy-utils": "1.0.0",
-    "ember-data": "^2.8.0",
+    "ember-data": "^2.9.0",
     "ember-simple-auth": "1.1.0",
     "ember-cli-babel": "^5.1.6"
   },

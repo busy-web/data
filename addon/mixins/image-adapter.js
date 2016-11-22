@@ -23,7 +23,7 @@ export default Ember.Mixin.create({
 	 * @param options {object} data options
 	 * @returns {object} ajax call object
 	 */
-	ajaxOptions(url, type, options) {
+	ajaxOptions(url, type, options={}) {
 		// get a file object if it exists.
 		const fileObject = Ember.get(options, 'data._fileObject');
 

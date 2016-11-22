@@ -8,7 +8,6 @@ import Ember from 'ember';
  * `Util\Polymorph`
  *
  */
-export default Ember.Object.extend(
-{
+export default Ember.ObjectProxy.extend({
 
 });

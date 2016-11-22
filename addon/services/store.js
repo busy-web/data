@@ -52,12 +52,20 @@ export default DS.Store.extend(RpcStoreMixin, {
 		});
 	},
 
-//	findRecord(modelType, value) {
-//		const query = { id: value, deleted_on: '_-DISABLE-_' };
-//		return this.query(modelType, query).then(models => {
-//			return models.objectAt(0);
-//		});
-//	},
+	addFilterType(type, model) {
+		const owner = Ember.getOwner(this);
+		const Filter = owner._lookupFactory(`filter:${type}`);
+
+		if (Ember.isArray(model)) {
+			const modelArray = Ember.A();
+			model.forEach(item => {
+				modelArray.pushObject(Filter.create({content: item}));
+			});
+			return modelArray;
+		} else {
+			return Filter.create({content: model});
+		}
+	},
 
 	findWhere(modelType, key, value, query={}) {
 		query[key] = value;
