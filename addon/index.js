@@ -9,6 +9,29 @@ import RPCModelMixin from './mixins/rpc-model';
 import FilterObject from './utils/filter-object';
 import FilterArray from './utils/filter-array';
 
+DS.Model.reopen({
+	reloadAll() {
+		return this.reload().then(model => {
+			this.reloadRelationships();
+			return model;
+		});
+	},
+
+	reloadRelationships() {
+		this.eachRelationship(name => {
+			const model = this.get(name);
+			if (model.reload) {
+				model.reload();
+			} else {
+				model.get('content');
+				if (model.reload) {
+					model.reload();
+				}
+			}
+		});
+	}
+});
+
 DS.Model.reopenClass({
 	eachRelationship(callback, binding) {
 		Ember.get(this, 'relationshipsByName').forEach(function(relationship, name) {
