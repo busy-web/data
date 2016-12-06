@@ -3,7 +3,7 @@
  *
  */
 import Ember from 'ember';
-import Assert from 'busy-utils/assert';
+import { Assert } from 'busy-utils';
 
 /**
  * `BusyData/Mixins/ImageAdapter`
@@ -29,10 +29,19 @@ export default Ember.Mixin.create({
 
 		// if the fileObject exists then change the type to GET to avoid
 		// ember data changing the data structure.
-		type = !Ember.isNone(fileObject) ? 'GET' : type;
+		let _type = type;
+		if (!Ember.isNone(fileObject)) {
+		 	_type = 'GET';
+		}
 
 		// let ember data add ajaxOptions
-		const hash = this._super(url, type, options);
+		const hash = this._super(url, _type, options);
+
+		// if type was changed then reset type
+		// to what it was meant to be.
+		if (_type !== type) {
+			hash.type = type;
+		}
 
 		// set up the content type and data object
 		//
@@ -79,7 +88,6 @@ export default Ember.Mixin.create({
 
 		// set contentType and processData to false
 		// for file uploads
-		hash.type = 'PATCH';
 		hash.contentType = false;
 		hash.processData = false;
 
