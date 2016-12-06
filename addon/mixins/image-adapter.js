@@ -32,6 +32,7 @@ export default Ember.Mixin.create({
 		let _type = type;
 		if (!Ember.isNone(fileObject)) {
 		 	_type = 'GET';
+			options.isUpload = true;
 		}
 
 		// let ember data add ajaxOptions
@@ -41,6 +42,7 @@ export default Ember.Mixin.create({
 		// to what it was meant to be.
 		if (_type !== type) {
 			hash.type = type;
+			delete hash.isUpload;
 		}
 
 		// set up the content type and data object

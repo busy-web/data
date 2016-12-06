@@ -108,10 +108,14 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 
 	serializeIntoHash(hash, type, snapshot, options) {
 		const dataHash = this.serialize(snapshot, options, true);
-		for(let key in dataHash.data) {
-			if (dataHash.data.hasOwnProperty(key)) {
-				if (!Ember.isNone(dataHash.data[key])) {
-					hash[key] = dataHash.data[key];
+		const data = dataHash.data;
+
+		delete data.relationships;
+
+		for(let key in data) {
+			if (data.hasOwnProperty(key)) {
+				if (!Ember.isNone(data[key])) {
+					hash[key] = data[key];
 				}
 			}
 		}

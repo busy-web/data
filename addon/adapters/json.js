@@ -48,13 +48,12 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 			this.changeFilter(hash);
 		}
 
-			if (hash.contentType !== false) {
-				delete hash.contentType;
-			}
+		if (hash.contentType !== false) {
+			delete hash.contentType;
+		}
 
 		if (!data.jsonrpc) {
-
-			if (hash.type === 'GET') {
+			if (hash.type === 'GET' && hash.isUpload !== true) {
 				this.addDefaultParams(data);
 			}
 			hash.data = data;
