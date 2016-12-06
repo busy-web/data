@@ -69,7 +69,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		}
 
 		if (!data.jsonrpc) {
-			if (hash.type === 'GET') {
+			if (hash.type === 'GET' && hash.isUpload !== true) {
 				this.addDefaultParams(data);
 			}
 			hash.data = data;
