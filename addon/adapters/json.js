@@ -53,7 +53,11 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 			}
 		}
 
-		let data = hash.data || {};
+		let data = hash.data;
+		if (Ember.isNone(data)) {
+			data = {};
+		}
+
 		let isString = false;
 		if (typeof data === 'string') {
 			isString = true;
