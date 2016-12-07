@@ -37,7 +37,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	ajaxOptions(/*url, type, options*/) {
 		const hash = this._super(...arguments);
 
-		let data = hash.data;
+		let data = hash.data || {};
 		let isString = false;
 		if (typeof data === 'string') {
 			isString = true;
