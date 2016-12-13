@@ -131,6 +131,22 @@ export default Ember.Mixin.create({
 		return name.replace(/[^\/]*\/([\s\S]*)/, '$1');
 	},
 
+	getData(hash={}) {
+		let url = hash.url;
+		const data = hash.data || {};
+		const [ mainUrl, query ] = url.split('?');
+		url = mainUrl;
+
+		if (query && query.length) {
+			const params = query.split('&');
+			params.forEach(item => {
+				const [ key, value ] = item.split('=');
+				data[key] = value;
+			});
+		}
+		return data;
+	},
+
 	/**
 	 * Creates a checksum hash of the model call that can be compared
 	 * with another call to see if the call has been made.
@@ -179,7 +195,8 @@ export default Ember.Mixin.create({
 			if (Ember.isNone(hashMap[hashKey])) {
 				// get the url type and data for this call
 				const url = this.getName(hash.url);
-				const { type, data } = hash;
+				const data = this.getData(hash);
+				const type = hash.type;
 
 				// create the request object.
 				const reqObject = { url, method: type, data };
@@ -201,6 +218,10 @@ export default Ember.Mixin.create({
 		});
 
 		return { requests, responses, hashMap };
+	},
+
+	addBatchParams(/*request*/) {
+		return;
 	},
 
 	/**
