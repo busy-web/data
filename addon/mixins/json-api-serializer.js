@@ -49,7 +49,7 @@ export default Ember.Mixin.create({
 				response.code = payload.code[0];
 			}
 		} else {
-			response = this.convertResponse(store, primaryModelClass, payload, requestType);
+			response = this.convertResponse(store, primaryModelClass, payload, id, requestType);
 		}
 		return this._super(store, primaryModelClass, response, id, requestType);
 	},
