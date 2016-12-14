@@ -43,6 +43,20 @@ DS.Model.reopenClass({
 	}
 });
 
+const belongsTo = DS.belongsTo;
+
+DS.belongsTo = function(modelName, options={}) {
+	options.modelName = modelName;
+	return belongsTo(modelName, options);
+};
+
+const hasMany = DS.hasMany;
+
+DS.hasMany = function(modelName, options={}) {
+	options.modelName = modelName;
+	return hasMany(modelName, options);
+};
+
 const BS = Object.assign({}, DS);
 
 BS.RPCModel = DS.Model.extend(RPCModelMixin, {});

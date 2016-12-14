@@ -262,7 +262,7 @@ export default Ember.Mixin.create({
 
 			// for a belongsTo relationship set the data as an object with `id` and `type`
 			if (opts.kind === 'belongsTo') {
-				Ember.assert(`belongsTo must reference the parent model id for DS.belongsTo('${opts.key}') in Model ${primaryModelClass.modelName}`, key === 'id');
+				//Ember.assert(`belongsTo must reference the parent model id for DS.belongsTo('${opts.key}') in Model ${primaryModelClass.modelName}`, key === 'id');
 
 				// create data object
 				let _data = null;
@@ -271,7 +271,7 @@ export default Ember.Mixin.create({
 					_data = { type: opts.type };
 
 					// add id for data object
-					_data.id = id;
+					_data[key] = id;
 				}
 
 				// set the data object for the relationship
