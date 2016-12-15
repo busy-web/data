@@ -239,16 +239,19 @@ export default Ember.Mixin.create({
 		primaryModelClass.eachRelationship((type, opts) => {
 			// get the model name + -id and underscore it.
 			let name = Ember.String.underscore(`${opts.type}-id`);
+			if (opts.kind === 'hasMany') {
+				name = 'id';
+			}
 
-			// the key should be `id`
-			let key = 'id';
 			if (opts.options.referenceKey) {
-				// if the referenceKey is id then the key should be the model name + `-id` underscored
-				if (opts.options.referenceKey === 'id') {
-					key = Ember.String.underscore(`${primaryModelClass.modelName}-id`);
-				}
 				// set the name to the referenceKey
 				name = Ember.String.underscore(opts.options.referenceKey);
+			}
+
+			let key = 'id';
+			if (name === 'id') {
+				// if the referenceKey is id then the key should be the model name + `-id` underscored
+				key = Ember.String.underscore(`${primaryModelClass.modelName}-id`);
 			}
 
 			// foreignKey overrides all other key forms if set.
@@ -260,8 +263,10 @@ export default Ember.Mixin.create({
 			// get the id from the json object if it is set
 			const id = Ember.get(json, name);
 
+			//console.log('relationship', opts.key, opts.kind, id, name, key);
+
 			// for a belongsTo relationship set the data as an object with `id` and `type`
-			if (opts.kind === 'belongsTo') {
+			if (opts.kind === 'belongsTo' && key === 'id') {
 				//Ember.assert(`belongsTo must reference the parent model id for DS.belongsTo('${opts.key}') in Model ${primaryModelClass.modelName}`, key === 'id');
 
 				// create data object
@@ -276,18 +281,20 @@ export default Ember.Mixin.create({
 
 				// set the data object for the relationship
 				data[Ember.String.dasherize(opts.key)] = {data: _data};
-			} else if (opts.kind === 'hasMany') { // for a has many set the data to an empty array
+			} else { // for a has many set the data to an empty array
 				// create data object
 				let _data = {};
 				let link = '';
 				if (!Ember.isNone(opts.options.query)) {
 					const keys = Object.keys(opts.options.query);
 					keys.forEach(item => {
-						link += `&${item}=${opts.options.query[item]}`;
+						let value = opts.options.query[item];
+						link += `&${item}=${value}`;
 					});
 				}
 
 				if (!Ember.isNone(id)) {
+					key = Ember.String.underscore(key);
 					// add id for data object
 					link += `&${key}=${id}`;
 				}

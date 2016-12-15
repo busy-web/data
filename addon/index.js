@@ -35,12 +35,20 @@ DS.Model.reopen({
 DS.Model.reopenClass({
 	eachRelationship(callback, binding) {
 		Ember.get(this, 'relationshipsByName').forEach(function(relationship, name) {
-			if (relationship.options.modelName) {
+			if (relationship.options.modelName !== relationship.type) {
 				relationship.type = relationship.options.modelName;
 			}
 			callback.call(binding, name, relationship);
 		});
-	}
+	},
+
+	typeForRelationship(name, store) {
+		var relationship = Ember.get(this, 'relationshipsByName').get(name);
+		if (relationship.options.modelName !== relationship.type) {
+			relationship.type = relationship.options.modelName;
+		}
+		return relationship && store.modelFor(relationship.type);
+	},
 });
 
 const belongsTo = DS.belongsTo;
