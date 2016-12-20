@@ -3,8 +3,7 @@
  *
  */
 import Ember from 'ember';
-import assert from 'busy-utils/assert';
-import uuid from 'busy-utils/uuid';
+import { UUID, Assert } from 'busy-utils';
 
 /***/
 const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord'];
@@ -83,7 +82,7 @@ export default Ember.Mixin.create({
 
 		// get the meta properties as an object from the payload
 		const meta = this.getMetaFromResponse(payload, requestType);
-		assert.isObject(meta);
+		Assert.isObject(meta);
 
 		// create a flat json-api object
 		const data = this.flattenResponseData(store, primaryModelClass, rawData);
@@ -138,7 +137,7 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	flattenResponseData(store, primaryModelClass, data) {
-		assert.funcNumArgs(arguments, 3, true);
+		Assert.funcNumArgs(arguments, 3, true);
 
 		// the new json-api formatted object to return
 		const json = {
@@ -186,10 +185,10 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	buildJSON(store, primaryModelClass, type, json, included) {
-		assert.funcNumArgs(arguments, 5, true);
-		assert.isString(type);
-		assert.isObject(json);
-		assert.isArray(included);
+		Assert.funcNumArgs(arguments, 5, true);
+		Assert.isString(type);
+		Assert.isObject(json);
+		Assert.isArray(included);
 
 		const primaryKey = Ember.get(this, 'primaryKey');
 
@@ -214,7 +213,7 @@ export default Ember.Mixin.create({
 						obj = this.buildNestedArray(store, primaryModelClass, i, value, included);
 					} else {
 						if (!Ember.get(value, primaryKey)) {
-							value.id = uuid.generate();
+							value.id = UUID.generate();
 						}
 						// get the nested model
 						obj = this.buildNested(store, primaryModelClass, i, value, included);
@@ -270,7 +269,6 @@ export default Ember.Mixin.create({
 			if (opts.kind === 'belongsTo' && key === 'id') {
 				relationship.data = null;
 
-				//Ember.assert(`belongsTo must reference the parent model id for DS.belongsTo('${opts.key}') in Model ${primaryModelClass.modelName}`, key === 'id');
 				if (!Ember.isNone(id)) {
 					// add id for data object
 					relationship.data = {
@@ -341,10 +339,10 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	buildNested(store, primaryModelClass, type, json, included) {
-		assert.funcNumArgs(arguments, 5, true);
-		assert.isString(type);
-		assert.isObject(json);
-		assert.isArray(included);
+		Assert.funcNumArgs(arguments, 5, true);
+		Assert.isString(type);
+		Assert.isObject(json);
+		Assert.isArray(included);
 
 		// create the actual data model
 		const _data = this.buildJSON(store, primaryModelClass, type, json, included);
@@ -375,10 +373,10 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	buildNestedArray(store, primaryModelClass, type, json, included) {
-		assert.funcNumArgs(arguments, 5, true);
-		assert.isString(type);
-		assert.isArray(json);
-		assert.isArray(included);
+		Assert.funcNumArgs(arguments, 5, true);
+		Assert.isString(type);
+		Assert.isArray(json);
+		Assert.isArray(included);
 
 		const data = [];
 

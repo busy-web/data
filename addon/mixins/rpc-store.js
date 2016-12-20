@@ -4,7 +4,7 @@
  */
 import Ember from 'ember';
 import RPCAdapter from 'busy-data/adapters/rpc-adapter';
-import Assert from 'busy-utils/assert';
+import { Assert } from 'busy-utils';
 
 /***/
 const { getOwner } = Ember;

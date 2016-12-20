@@ -5,7 +5,7 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import Configuration from './../configuration';
-import assert from 'busy-utils/assert';
+import { Assert } from 'busy-utils';
 
 /**
  * @class
@@ -70,7 +70,7 @@ export default DS.RESTAdapter.extend({
 	defaultQuery(query) {
 		query = this.copyQuery(query || {});
 
-		assert.test("store.query was called with an id. store.findRecord should be used instead.", typeof query !== 'string');
+		Assert.test("store.query was called with an id. store.findRecord should be used instead.", typeof query !== 'string');
 
 		if (Ember.isNone(Ember.get(query, 'deleted_on'))) {
 			query.deleted_on = '_-NULL-_';

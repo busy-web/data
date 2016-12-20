@@ -4,7 +4,7 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-import uuid from 'busy-utils/uuid';
+import { UUID } from 'busy-utils';
 import JSONMixin from 'busy-data/mixins/json-api-serializer';
 
 /**
@@ -50,7 +50,7 @@ export default DS.JSONAPISerializer.extend(JSONMixin, {
 	},
 
 	generateIdForRecord() {
-		return uuid.generate();
+		return UUID.generate();
 	},
 
 	keyForAttribute(key) {

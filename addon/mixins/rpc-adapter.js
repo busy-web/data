@@ -2,7 +2,7 @@
  * @module Mixins
  */
 import Ember from 'ember';
-import Assert from 'busy-utils/assert';
+import { Assert } from 'busy-utils';
 
 /**
  * `BusyData/Mixins/RpcAdapter`

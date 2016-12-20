@@ -4,7 +4,7 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-import uuid from 'busy-utils/uuid';
+import { UUID } from 'busy-utils';
 
 const { isNone, get } = Ember;
 
@@ -98,7 +98,7 @@ export default DS.RESTSerializer.extend({
 						for (let index in item) {
 							if (item.hasOwnProperty(index)) {
 								if (isNone(item[index].id)) {
-									item[index].id = uuid.generate();
+									item[index].id = UUID.generate();
 								}
 								ids.push(item[index].id);
 							}
@@ -113,7 +113,7 @@ export default DS.RESTSerializer.extend({
 					this.flattenObject(modelType, parentObj, data[key]);
 
 					if (isNone(item.id)) {
-						item.id = uuid.generate();
+						item.id = UUID.generate();
 					}
 
 					parentObj[name] = [item];
@@ -187,8 +187,7 @@ export default DS.RESTSerializer.extend({
 	},
 
 	generateIdForRecord() {
-		//return Math.random().toString(32).slice(2).substr(0, 5);
-		return uuid.generate();
+		return UUID.generate();
 	},
 
 	serializeIntoHash(hash, type, snapshot, options) {
