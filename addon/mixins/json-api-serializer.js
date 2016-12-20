@@ -263,27 +263,26 @@ export default Ember.Mixin.create({
 			// get the id from the json object if it is set
 			const id = Ember.get(json, name);
 
-			//console.log('relationship', opts.key, opts.kind, id, name, key);
+			// create data object
+			const relationship = {};
 
 			// for a belongsTo relationship set the data as an object with `id` and `type`
 			if (opts.kind === 'belongsTo' && key === 'id') {
+				relationship.data = null;
+
 				//Ember.assert(`belongsTo must reference the parent model id for DS.belongsTo('${opts.key}') in Model ${primaryModelClass.modelName}`, key === 'id');
-
-				// create data object
-				let _data = null;
-
 				if (!Ember.isNone(id)) {
-					_data = { type: opts.type };
-
 					// add id for data object
-					_data[key] = id;
+					relationship.data = {
+						type: opts.type,
+						id: id
+					};
 				}
 
 				// set the data object for the relationship
-				data[Ember.String.dasherize(opts.key)] = {data: _data};
+				data[Ember.String.dasherize(opts.key)] = relationship;
 			} else { // for a has many set the data to an empty array
 				// create data object
-				let _data = {};
 				let link = '';
 				if (!Ember.isNone(opts.options.query)) {
 					const keys = Object.keys(opts.options.query);
@@ -294,19 +293,19 @@ export default Ember.Mixin.create({
 				}
 
 				if (!Ember.isNone(id)) {
-					key = Ember.String.underscore(key);
 					// add id for data object
+					key = Ember.String.underscore(key);
 					link += `&${key}=${id}`;
 				}
 
 				if (!Ember.isEmpty(link)) {
 					link = link.replace(/^&/, '?');
-					_data.links = { related: `/${opts.type}${link}` };
+					relationship.links = { related: `/${opts.type}${link}` };
 				} else {
-					_data.data = [];
+					relationship.data = [];
 				}
 
-				data[Ember.String.dasherize(opts.key)] = _data;
+				data[Ember.String.dasherize(opts.key)] = relationship;
 			}
 		});
 
