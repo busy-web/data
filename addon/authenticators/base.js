@@ -4,17 +4,16 @@
  */
 import Ember from 'ember';
 import Base from 'ember-simple-auth/authenticators/base';
+import { Hash } from 'busy-utils';
 
 const { getOwner } = Ember;
 
-export default Base.extend(
-{
+export default Base.extend({
 	authModel: '',
 
 	dataService: Ember.inject.service('busy-data'),
 
-	restore(data)
-	{
+	restore(data) {
 		return new Ember.RSVP.Promise((resolve, reject) => {
 			if(data !== undefined)
 			{
@@ -27,15 +26,13 @@ export default Base.extend(
 		});
 	},
 
-	authenticate(options)
-	{
+	authenticate(options) {
 		Ember.assert("You must provide 'username and password' or 'token' to authenticate", (options.token || (options.username && options.password)));
 
 		options.success = typeof options.success === 'function' ? options.success : function(){};
 		options.error = typeof options.error === 'function' ? options.error : function(){};
 
-		if(options.username && options.password)
-		{
+		if (options.username && options.password) {
 			options.password = this.hashPassword(options.password);
 
 			return new Ember.RSVP.Promise((resolve, reject) => {
@@ -72,22 +69,18 @@ export default Base.extend(
 
 				this.ajax(this.get('authModel'), options, success, error);
 			});
-		}
-		else
-		{
+		} else {
 			return new Ember.RSVP.Promise((resolve) => {
 				Ember.run(null, resolve, {id: options.id, public_key: options.token, verifiedEmail: true});
 			});
 		}
 	},
 
-	hashPassword(password)
-	{
-		return Ember.CryptoJS.SHA256(password).toString();
+	hashPassword(password) {
+		return Hash.sha256(password).toString();
 	},
 
-	gennerateAuthObject(authData)
-	{
+	gennerateAuthObject(authData) {
 		return authData;
 	},
 
@@ -98,23 +91,15 @@ export default Base.extend(
 	 * @param {object} auth
 	 * @return {mixed} true if valid.
 	 */
-	isInvalid(/*auth*/)
-	{
+	isInvalid(/*auth*/) {
 		return;
 	},
 
-	onValidated()
-	{
+	onValidated() {},
 
-	},
+	onInvalidated() {},
 
-	onInvalidated()
-	{
-
-	},
-
-	ajaxOptions(url, options)
-	{
+	ajaxOptions(url, options) {
 		// generate url
 		url = this.get('dataService.host') + '/' + url;
 
@@ -153,8 +138,7 @@ export default Base.extend(
 		return xhr;
 	},
 
-	ajax(url, options, onSuccess, onError)
-	{
+	ajax(url, options, onSuccess, onError) {
 		var xhr = this.ajaxOptions(url, options);
 		xhr.success = (result) => {
 			if(typeof result === 'string') {
@@ -175,11 +159,9 @@ export default Base.extend(
 		Ember.$.ajax(xhr);
 	},
 
-	invalidate(session)
-	{
-		var store = getOwner(this).lookup('session-store:application');
-			store.clear();
-
+	invalidate(session) {
+		const store = getOwner(this).lookup('session-store:application');
+		store.clear();
 		return new Ember.RSVP.Promise((resolve) => {
 			this.onInvalidated();
 			Ember.run(null, resolve, session);
