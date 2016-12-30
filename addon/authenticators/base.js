@@ -15,12 +15,9 @@ export default Base.extend({
 
 	restore(data) {
 		return new Ember.RSVP.Promise((resolve, reject) => {
-			if(data !== undefined)
-			{
+			if (data !== undefined) {
 				Ember.run(null, resolve, data);
-			}
-			else
-			{
+			} else {
 				Ember.run(null, reject, data);
 			}
 		});
