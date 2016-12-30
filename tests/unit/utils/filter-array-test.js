@@ -5,6 +5,6 @@ module('Unit | Utility | filter array');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let result = filterArray();
+  let result = filterArray;
   assert.ok(result);
 });

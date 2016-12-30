@@ -5,6 +5,6 @@ module('Unit | Utility | join all');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let result = joinAll();
+  let result = joinAll;
   assert.ok(result);
 });

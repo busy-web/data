@@ -5,6 +5,6 @@ module('Unit | Utility | filter manager');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let result = filterManager();
+  let result = filterManager;
   assert.ok(result);
 });
