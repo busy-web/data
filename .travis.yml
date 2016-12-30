@@ -38,3 +38,7 @@ script:
   # Usually, it's ok to finish the test scenario without reverting
   #  to the addon's original dependency state, skipping "cleanup".
   - ember try:one $EMBER_TRY_SCENARIO test --skip-cleanup
+
+addons:
+  code_climate:
+    repo_token: 1cbaa5fede699e1d26fe90286e0be0f96951e3f4fa79d7b68a06ce5cb35c7d01
