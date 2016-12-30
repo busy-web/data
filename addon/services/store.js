@@ -52,23 +52,6 @@ export default DS.Store.extend(RpcStoreMixin, {
 		});
 	},
 
-	addFilterType(type, model, args) {
-		const owner = Ember.getOwner(this);
-		const Filter = owner._lookupFactory(`filter:${type}`);
-
-		if (Ember.isArray(model)) {
-			const modelArray = Ember.A();
-			model.forEach(item => {
-				const f = Filter.create({content: item});
-				f.setProperties(args);
-				modelArray.pushObject(f);
-			});
-			return modelArray;
-		} else {
-			return Filter.create({content: model});
-		}
-	},
-
 	findWhere(modelType, key, value, query={}) {
 		query[key] = value;
 		return this.query(modelType, query);

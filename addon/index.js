@@ -6,8 +6,6 @@ import Ember from 'ember';
 import join from './utils/join';
 import joinAll from './utils/join-all';
 import RPCModelMixin from './mixins/rpc-model';
-import FilterObject from './utils/filter-object';
-import FilterArray from './utils/filter-array';
 
 DS.Model.reopen({
 	reloadAll() {
@@ -70,7 +68,5 @@ const BS = Object.assign({}, DS);
 BS.RPCModel = DS.Model.extend(RPCModelMixin, {});
 BS.join = join;
 BS.joinAll = joinAll;
-BS.FilterObject = FilterObject;
-BS.FilterArray = FilterArray;
 
 export default BS;

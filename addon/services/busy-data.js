@@ -4,7 +4,6 @@
  */
 import Ember from 'ember';
 import Configuration from './../configuration';
-import BatchAdapter from './../adapters/batch-adapter';
 
 /**
  * `BusyData\Service\BusyData`
@@ -15,103 +14,71 @@ import BatchAdapter from './../adapters/batch-adapter';
  * This is used to set api urls, version numbers, authenticated keys, ect.
  *
  */
-export default Ember.Service.extend(
-{
+export default Ember.Service.extend({
 	session: Ember.inject.service('session'),
 
-	autoBatch: null,
-	manualBatch: null,
-
-	init: function()
-	{
-		this._super();
-		const owner = Ember.getOwner(this);
-
-		this.manualBatch = BatchAdapter.create(owner.ownerInjection()); //Ember.getOwner(this).lookup('adapter:batch-adapter');
-		this.autoBatch = BatchAdapter.create(owner.ownerInjection(), {maxSize: 20, interval: 5}); //Ember.getOwner(this)._lookupFactory('adapter:batch-adapter').create({maxSize: 20, interval: 5});
-	},
-
-	host: Ember.computed(function()
-	{
+	host: Ember.computed(function() {
 		return Configuration.API_URL;
 	}),
 
-	debug: Ember.computed(function()
-	{
+	debug: Ember.computed(function() {
 		return Configuration.DEBUG_MODE;
 	}),
 
-	debugUrlParam: Ember.computed(function()
-	{
+	debugUrlParam: Ember.computed(function() {
 		return '_debug';
 	}),
 
-	xdebug: Ember.computed(function()
-	{
+	xdebug: Ember.computed(function() {
 		return 'XDEBUG_SESSION_START';
 	}),
 
-	xdebugSession: Ember.computed(function()
-	{
+	xdebugSession: Ember.computed(function() {
 		return Configuration.XDEBUG_SESSION_START;
 	}),
 
-	version: Ember.computed(function()
-	{
+	version: Ember.computed(function() {
 		return Configuration.API_VERSION;
 	}),
 
-	versionUrlParam: Ember.computed(function()
-	{
+	versionUrlParam: Ember.computed(function() {
 		return '_version';
 	}),
 
-	publicKey: Ember.computed('session.data.authenticated.public_key', function()
-	{
+	publicKey: Ember.computed('session.data.authenticated.public_key', function() {
 		return this.get('session.data.authenticated.public_key');
 	}),
 
-	basicKey: Ember.computed('session.data.authenticated.auth_hash', function()
-	{
+	basicKey: Ember.computed('session.data.authenticated.auth_hash', function() {
 		return this.get('session.data.authenticated.auth_hash');
 	}),
 
-	publicKeyAuthString: Ember.computed(function()
-	{
+	publicKeyAuthString: Ember.computed(function() {
 		return 'Key-Authorization';
 	}),
 
-	basicKeyAuthString: Ember.computed(function()
-	{
+	basicKeyAuthString: Ember.computed(function() {
 		return 'Authorization';
 	}),
 
-	shouldSendVersion: Ember.computed(function()
-	{
+	shouldSendVersion: Ember.computed(function() {
 		return true;
 	}),
 
-	invalidateSession: function()
-	{
+	invalidateSession() {
 		this.get('session').invalidate('authenticator:basic', {});
 	},
 
-	authKey: Ember.computed('publicKey', 'basicKey', function()
-	{
+	authKey: Ember.computed('publicKey', 'basicKey', function() {
 		var auth = null;
-		if(!Ember.isNone(this.get('publicKey')))
-		{
+		if (!Ember.isNone(this.get('publicKey'))) {
 			auth = {type: 10, key: this.get('publicKey')};
-		}
-		else if(!Ember.isNone(this.get('basicKey')))
-		{
+		} else if (!Ember.isNone(this.get('basicKey'))) {
 			auth = {type: 20, key: this.get('basicKey')};
-			if(this.get('basicKey').match(/:/))
-			{
+			if (this.get('basicKey').match(/:/)) {
 				auth = {type: 20, key: btoa(auth)};
 			}
 		}
-
 		return auth;
-	}),
+	})
 });

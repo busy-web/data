@@ -1,12 +1,12 @@
 import { moduleFor, test } from 'ember-qunit';
 
-moduleFor('service:busy-data', 'Unit | Service | busy data', {
+moduleFor('adapter:rpc-adapter', 'Unit | Adapter | rpc adapter', {
   // Specify the other units that are required for this test.
-  needs: []
+  // needs: ['serializer:foo']
 });
 
 // Replace this with your real tests.
 test('it exists', function(assert) {
-  let service = this.subject();
-  assert.ok(service);
+  let adapter = this.subject();
+  assert.ok(adapter);
 });
