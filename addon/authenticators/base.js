@@ -4,6 +4,7 @@
  */
 import Ember from 'ember';
 import Base from 'ember-simple-auth/authenticators/base';
+import { Hash } from 'busy-utils';
 
 const { getOwner } = Ember;
 
@@ -83,7 +84,7 @@ export default Base.extend(
 
 	hashPassword(password)
 	{
-		return Ember.CryptoJS.SHA256(password).toString();
+		return Hash.sha256(password).toString();
 	},
 
 	gennerateAuthObject(authData)
