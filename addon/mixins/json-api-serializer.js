@@ -36,20 +36,25 @@ export default Ember.Mixin.create({
 	 */
 	normalizeResponse(store, primaryModelClass, payload, id, requestType) {
 		let response;
-		if (requestType === 'deleteRecord') { // delete record should return a no content response
-			response = {
-				status: '204 No Content',
-				data: null,
-				jsonapi: { version: "1.0" }
-			};
+		if (!payload.jsonapi) {
+			if (requestType === 'deleteRecord') { // delete record should return a no content response
+				response = {
+					status: '204 No Content',
+					data: null,
+					jsonapi: { version: "1.0" }
+				};
 
-			if (payload.code && payload.code.length > 0) {
-				response.status = '400 Bad Request';
-				response.code = payload.code[0];
+				if (payload.code && payload.code.length > 0) {
+					response.status = '400 Bad Request';
+					response.code = payload.code[0];
+				}
+			} else {
+				response = this.convertResponse(store, primaryModelClass, payload, id, requestType);
 			}
 		} else {
-			response = this.convertResponse(store, primaryModelClass, payload, id, requestType);
+			response = payload;
 		}
+
 		return this._super(store, primaryModelClass, response, id, requestType);
 	},
 
