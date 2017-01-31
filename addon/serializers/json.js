@@ -5,7 +5,6 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import { UUID } from 'busy-utils';
-import JSONMixin from 'busy-data/mixins/json-api-serializer';
 
 /**
  * `BusyData/Serializers/Json`
@@ -14,7 +13,7 @@ import JSONMixin from 'busy-data/mixins/json-api-serializer';
  * @namespace BusyData.Serializers
  * @extends DS.JSONAPISerializer
  */
-export default DS.JSONAPISerializer.extend(JSONMixin, {
+export default DS.JSONAPISerializer.extend({
 	serializeAttribute(snapshot, json, key, attribute) {
 		const type = attribute.type;
 		if (this._canSerialize(key)) {

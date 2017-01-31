@@ -4,8 +4,6 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-import Manager from 'busy-data/utils/manager';
-import RpcStoreMixin from 'busy-data/mixins/rpc-store';
 
 /***/
 const kPageSize = 100;
@@ -14,7 +12,7 @@ const kPageSize = 100;
  * `Service/Store`
  *
  */
-export default DS.Store.extend(RpcStoreMixin, {
+export default DS.Store.extend({
 	_maxPageSize: kPageSize,
 
 	findAll(modelType, query={}) {
@@ -143,32 +141,5 @@ export default DS.Store.extend(RpcStoreMixin, {
 			query._in = query._in || {};
 			query._in[key] = value;
 		}
-	},
-
-	_filterByQuery(models, query) {
-		const excludeKeys = ['_in', '_desc', '_asc', '_lte', '_gte', '_lt', '_gt', 'page', 'page_size'];
-		for (var key in query) {
-			if (query.hasOwnProperty(key) && excludeKeys.indexOf(key) === -1) {
-				const property = Ember.String.camelize(key);
-
-				let param = query[key];
-				param = param === '_-NULL-_' ? null : param;
-				if (param === '!_-NULL-_') {
-					models.removeObjects(models.filterBy(property, null));
-				} else if (param !== '_-DISABLE-_') {
-					models = models.filterBy(property, param);
-				}
-			}
-		}
-		return models;
-	},
-
-	getter() {
-		const owner = Ember.getOwner(this);
-		return Manager.create(owner.ownerInjection(), {
-			store: this,
-			operations: Ember.A(),
-			__storedOperations: Ember.A()
-		});
 	}
 });
