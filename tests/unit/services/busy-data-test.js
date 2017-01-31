@@ -2,7 +2,7 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('service:busy-data', 'Unit | Service | busy data', {
   // Specify the other units that are required for this test.
-  needs: []
+	needs: ['service:session']
 });
 
 // Replace this with your real tests.

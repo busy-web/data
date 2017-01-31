@@ -2,7 +2,7 @@ import { moduleFor, test } from 'ember-qunit';
 
 moduleFor('adapter:rpc-adapter', 'Unit | Adapter | rpc adapter', {
   // Specify the other units that are required for this test.
-  // needs: ['serializer:foo']
+	needs: ['service:busy-data']
 });
 
 // Replace this with your real tests.
