@@ -19,7 +19,7 @@
     "test": "ember try:each"
   },
   "dependencies": {
-    "busy-utils": "2.1.7",
+    "busy-utils": "2.2.0",
     "ember-simple-auth": "1.1.0",
     "ember-cli-babel": "^5.1.7"
   },
