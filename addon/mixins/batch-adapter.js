@@ -316,7 +316,7 @@ export default Ember.Mixin.create({
 				const statusText = this.getBatchStatusTextForModel(data, gStatusText);
 
 				// create an xhr response for this model
-				const xhr = Object.assign({}, jqXHR);
+				const xhr = Ember.merge({}, jqXHR);
 				xhr.statusText = statusText;
 				xhr.status = status;
 				xhr.responseText = JSON.stringify(data);
