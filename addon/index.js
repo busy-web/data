@@ -61,7 +61,8 @@ DS.hasMany = function(modelName, options={}) {
 	return hasMany(modelName, options);
 };
 
-const BS = Object.assign({}, DS);
+const BS = Ember.merge({}, DS);
 
 BS.RPCModel = DS.Model.extend(RPCModelMixin, {});
 export default BS;
+
