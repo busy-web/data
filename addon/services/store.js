@@ -29,10 +29,7 @@ export default DS.Store.extend(RpcStoreMixin, {
 		}
 
 		return this.query(modelType, _query).then(models => {
-			const next = models.get('meta').next;
-			if (!Ember.isNone(next) && !Ember.isEmpty(next)) {
-				_query.page = _query.page + 1;
-
+			if (this.nextParams(models, _query)) {
 				return this.findAll(modelType, _query).then(moreModels => {
 					if (!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content'))) {
 						models.pushObjects(moreModels.get('content'));
@@ -177,5 +174,33 @@ export default DS.Store.extend(RpcStoreMixin, {
 			operations: Ember.A(),
 			__storedOperations: Ember.A()
 		});
+	},
+
+	nextParams(model, query) {
+		let isJsonApi = false;
+		let next = model.get('meta.next');
+		if (Ember.isNone(next)) {
+			isJsonApi = true;
+			next = model.get('links.next');
+		}
+
+		if (!Ember.isEmpty(next)) {
+			if (isJsonApi) {
+				let [ , params ] = next.split('?');
+				params = params.split('&');
+				params.forEach(item => {
+					const [ key, value ] = item.split('=');
+					if (!Ember.isEmpty(value)) {
+						query[key] = value;
+					} else {
+						delete query[key];
+					}
+				});
+			} else {
+				query.page = query.page + 1;
+			}
+			return true;
+		}
+		return false;
 	}
 });
