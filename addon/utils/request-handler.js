@@ -5,7 +5,7 @@
 import Ember from 'ember';
 import Helper from 'busy-data/utils/helpers';
 
-const {getModelProperty} = Helper;
+const { getModelProperty } = Helper;
 
 
 /**
@@ -18,73 +18,74 @@ const {getModelProperty} = Helper;
  * @param model {DS.Model}
  * @return {array}
  */
-function getParamFromModels(key, model)
-{
+function getParamFromModels(key, model) {
 	var prop = null;
-	if(!Ember.isNone(model.forEach))
-	{
+	if (!Ember.isNone(model.forEach)) {
 		prop = [];
-		model.forEach(function(item)
-		{
+		model.forEach(function(item) {
 			var id = getModelProperty(item, key);
-			if(!Ember.isNone(id) && prop.indexOf(id) === -1)
-			{
+			if (!Ember.isNone(id) && prop.indexOf(id) === -1) {
 				prop.push(id);
 			}
 		});
-	}
-	else
-	{
+	} else {
 		var id = getModelProperty(model, key);
-		if(!Ember.isNone(id))
-		{
+		if (!Ember.isNone(id)) {
 			prop = [id];
 		}
 	}
-
 	return prop;
 }
 
-function objectIsEmpty(obj)
-{
-	if(Ember.isNone(obj))
-	{
+function objectIsEmpty(obj) {
+	if (Ember.isNone(obj)) {
 		return true;
 	}
 
 	let length = 0;
 	for(let i in obj) {
-		if(obj.hasOwnProperty(i))
-		{
+		if (obj.hasOwnProperty(i)) {
 			length = length + 1;
 		}
 	}
-
 	return length === 0;
 }
 
-function isJoinAll(type)
-{
+function isJoinAll(type) {
 	return /join/.test(Ember.String.dasherize(type)) && /all/.test(Ember.String.dasherize(type));
 }
 
-function isOuterJoin(type)
-{
+function isOuterJoin(type) {
 	return /join/.test(Ember.String.dasherize(type)) && /outer/.test(Ember.String.dasherize(type));
+}
+
+function forEachPromise(model, callback, target=null) {
+	return new Ember.RSVP.Promise(resolve => {
+		const length = (Ember.get(model, 'length') || 0);
+		model.forEach((item, index, enumerable) => {
+			callback.call(target, item, index, enumerable);
+
+			if (index >= length - 1) { // resolve promise
+				Ember.run(target, resolve, null);
+			}
+		});
+
+		if (length === 0) {
+			Ember.run(target, resolve, null);
+		}
+	});
 }
 
 /**
  * `Util\RequestHandler`
  *
  */
-export default Ember.Object.extend(
-{
+export default Ember.Object.extend({
 	store: null,
 
 	finishedList: null,
 
-	buildQuery(operation)
-	{
+	buildQuery(operation) {
 		var modelType = Ember.get(operation, 'modelType');
 		var query = Ember.get(operation, 'params.query');
 
@@ -94,8 +95,7 @@ export default Ember.Object.extend(
 		return this.store.query(modelType, query);
 	},
 
-	buildQueryRecord(operation)
-	{
+	buildQueryRecord(operation) {
 		var modelType = Ember.get(operation, 'modelType');
 		var query = Ember.get(operation, 'params.query');
 
@@ -105,8 +105,7 @@ export default Ember.Object.extend(
 		return this.store.queryRecord(modelType, query);
 	},
 
-	buildFindAll(operation)
-	{
+	buildFindAll(operation) {
 		var modelType = Ember.get(operation, 'modelType');
 		var query = Ember.get(operation, 'params.query');
 
@@ -116,8 +115,7 @@ export default Ember.Object.extend(
 		return this.store.findAll(modelType, query);
 	},
 
-	buildFindRecord(operation)
-	{
+	buildFindRecord(operation) {
 		var modelType = Ember.get(operation, 'modelType');
 		var id = Ember.get(operation, 'params.id');
 
@@ -127,8 +125,7 @@ export default Ember.Object.extend(
 		return this.store.findRecord(modelType, id);
 	},
 
-	buildFindWhereIn(operation)
-	{
+	buildFindWhereIn(operation) {
 		var modelType = Ember.get(operation, 'modelType');
 		var key = Ember.get(operation, 'params.key');
 		var id = Ember.get(operation, 'params.id');
@@ -142,23 +139,19 @@ export default Ember.Object.extend(
 		return this.store.findWhereIn(modelType, key, id, query);
 	},
 
-	buildOuterJoin(operation, parentModel)
-	{
+	buildOuterJoin(operation, parentModel) {
 		return this.buildJoinTo(operation, parentModel);
 	},
 
-	buildOuterJoinAll(operation, parentModel)
-	{
+	buildOuterJoinAll(operation, parentModel) {
 		return this.buildJoinTo(operation, parentModel);
 	},
 
-	buildJoin(operation, parentModel)
-	{
+	buildJoin(operation, parentModel) {
 		return this.buildJoinTo(operation, parentModel);
 	},
 
-	buildJoinAll(operation, parentModel)
-	{
+	buildJoinAll(operation, parentModel) {
 		return this.buildJoinTo(operation, parentModel);
 	},
 
@@ -166,9 +159,9 @@ export default Ember.Object.extend(
 		const type = Ember.get(operation, 'operationType');
 		const modelType = Ember.get(operation, 'modelType');
 		const joinOn = Ember.get(operation, 'params.joinOn');
-		const joinModel = Ember.get(operation, 'params.join');
+		const joinModel = Ember.get(operation, 'params.joinModel');
 		const query = Ember.get(operation, 'params.query') || {};
-		let alias = Ember.get(operation, 'alias');
+		let alias = Ember.String.camelize(Ember.get(operation, 'alias'));
 
 		const hasMany = isJoinAll(Ember.String.dasherize(type));
 		const isOuter = isOuterJoin(Ember.String.dasherize(type));
@@ -182,27 +175,23 @@ export default Ember.Object.extend(
 		}
 
 		return this.store.findWhereIn(modelType, modelKey, modelProperty, query).then(children => {
-			let modelName = Ember.String.camelize(modelType);
-			modelName = hasMany ? Ember.String.pluralize(modelName) : modelName;
+			alias = hasMany ? Ember.String.pluralize(alias) : alias;
 
-			if (Ember.isNone(alias)) {
-				alias = modelName;
-			}
-
+			let promise = Ember.RSVP.resolve(children);
 			if (!isOuter) {
+				promise = Ember.RSVP.resolve(null);
 				if (!Ember.isNone(parentModel.forEach)) {
 					let getter = hasMany ? 'filterBy' : 'findBy';
-					parentModel.forEach(item => {
-						item.set(alias, children[getter].call(children, Ember.String.camelize(modelKey), getModelProperty(item, joinOn)));
+					promise = forEachPromise(parentModel, item => {
+						const childGet = Ember.get(children, getter);
+						const value = childGet.call(children, Ember.String.camelize(modelKey), getModelProperty(item, joinOn));
+						Ember.set(item, alias, value);
 					});
-					return;
 				} else {
 					parentModel.set(alias, hasMany ? children : children.objectAt(0));
-					return;
 				}
-			} else {
-				return children;
 			}
+			return promise;
 		});
 	},
 
@@ -216,10 +205,7 @@ export default Ember.Object.extend(
 
 		operations.forEach(item => {
 			const type = Ember.get(item, 'operationType');
-			const modelName = Ember.String.camelize(Ember.get(item, 'modelType'));
-
-			let alias = Ember.get(item, 'alias');
-			alias = Ember.isNone(alias) ? modelName : alias;
+			let alias = Ember.String.camelize(Ember.get(item, 'alias'));
 
 			if (type === 'join' || type === 'joinAll' || type === 'outerJoin' || type === 'outerJoinAll') {
 				alias = isJoinAll(type) ? Ember.String.pluralize(alias) : alias;
@@ -253,7 +239,6 @@ export default Ember.Object.extend(
 		});
 
 		operations.removeObjects(remove);
-
 		return Ember.RSVP.hashSettled(requests).then(data => {
 			// convert hashSettled data to regular hash data
 			const _data = {};
@@ -305,9 +290,7 @@ export default Ember.Object.extend(
 				}
 			}
 		}
-
 		parentPath = parentPath.replace(/\.$/, '');
-
 		return parentPath;
 	}
 });
