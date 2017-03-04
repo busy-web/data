@@ -409,5 +409,5 @@ export default Ember.Mixin.create({
 			});
 			return result;
 		}
-	},
+	}
 });
