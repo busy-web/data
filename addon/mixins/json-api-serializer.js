@@ -6,7 +6,7 @@ import Ember from 'ember';
 import { UUID, Assert } from 'busy-utils';
 
 /***/
-const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord'];
+const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord', 'findBelongsTo'];
 
 /**
  * `Mixins/JSONAPISerializer`
