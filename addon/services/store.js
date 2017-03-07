@@ -18,8 +18,10 @@ export default DS.Store.extend(RpcStoreMixin, {
 	_maxPageSize: kPageSize,
 
 	findAll(modelType, query={}) {
-		query.page_size = query.page_size || this._maxPageSize;
-		query.page = query.page || 1;
+		if (Ember.isNone(Ember.get(query, 'limit'))) {
+			query.page_size = query.page_size || this._maxPageSize;
+			query.page = query.page || 1;
+		}
 
 		const _query = {};
 		for(let key in query) {
@@ -29,8 +31,9 @@ export default DS.Store.extend(RpcStoreMixin, {
 		}
 
 		return this.query(modelType, _query).then(models => {
-			if (this.nextParams(models, _query)) {
-				return this.findAll(modelType, _query).then(moreModels => {
+			let nextQuery = {};
+			if (this.nextParams(models, nextQuery)) {
+				return this.findAll(modelType, nextQuery).then(moreModels => {
 					if (!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content'))) {
 						models.pushObjects(moreModels.get('content'));
 					}
@@ -177,28 +180,18 @@ export default DS.Store.extend(RpcStoreMixin, {
 	},
 
 	nextParams(model, query) {
-		let isJsonApi = false;
 		let next = model.get('meta.next');
 		if (Ember.isNone(next)) {
-			isJsonApi = true;
 			next = model.get('links.next');
 		}
 
 		if (!Ember.isEmpty(next)) {
-			if (isJsonApi) {
-				let [ , params ] = next.split('?');
-				params = params.split('&');
-				params.forEach(item => {
-					const [ key, value ] = item.split('=');
-					if (!Ember.isEmpty(value)) {
-						query[key] = value;
-					} else {
-						delete query[key];
-					}
-				});
-			} else {
-				query.page = query.page + 1;
-			}
+			let [ , params ] = next.split('?');
+			params = params.split('&');
+			params.forEach(item => {
+				const [ key, value ] = item.split('=');
+				query[key] = value;
+			});
 			return true;
 		}
 		return false;
