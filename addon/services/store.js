@@ -179,19 +179,36 @@ export default DS.Store.extend(RpcStoreMixin, {
 		});
 	},
 
-	nextParams(model, query) {
+	nextParams(model, query, lastQuery) {
+		let isJsonApi = false;
 		let next = model.get('meta.next');
 		if (Ember.isNone(next)) {
+			isJsonApi = true;
 			next = model.get('links.next');
 		}
 
 		if (!Ember.isEmpty(next)) {
-			let [ , params ] = next.split('?');
-			params = params.split('&');
-			params.forEach(item => {
-				const [ key, value ] = item.split('=');
-				query[key] = value;
-			});
+			if (isJsonApi) {
+				let [ , params ] = next.split('?');
+				params = params.split('&');
+				params.forEach(item => {
+					let [ key, value ] = item.split('=');
+					if (/\[/.test(key)) {
+						let [ key2, key3 ] = key.split('[');
+						key3 = key3.replace(/\]$/, '');
+						key = key2;
+						if (/\d+/.test(key3)) {
+							value = [value];
+						} else {
+							value = {[key3]: value};
+						}
+					}
+					query[key] = value;
+				});
+			} else {
+				lastQuery.page = lastQuery.page + 1;
+				Ember.merge(query, lastQuery);
+			}
 			return true;
 		}
 		return false;
