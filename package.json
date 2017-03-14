@@ -46,7 +46,7 @@
     "busybusy"
   ],
   "dependencies": {
-    "busy-utils": "2.1.5",
+    "busy-utils": "2.2.4",
     "ember-simple-auth": "1.1.0",
     "ember-cli-babel": "^5.1.6"
   },
