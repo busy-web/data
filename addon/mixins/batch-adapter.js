@@ -165,7 +165,7 @@ export default Ember.Mixin.create({
 		Assert.isObject(data);
 
 		// stringify the data
-		const dataStr = JSON.stringify(data);
+		const dataStr = window.unescape(window.encodeURIComponent(JSON.stringify(data)));
 
 		// return a btoa hash of the url + data + type
 		return btoa(`${url}-${dataStr}-${type}`);
@@ -255,6 +255,7 @@ export default Ember.Mixin.create({
 
 		// get options and set callbacks
 		const hash = this.ajaxOptions(url, 'POST', options);
+		hash.contentType = 'application/json; charset=utf-8';
 
 		var _this = this;
 		hash.success = function(payload, textStatus, jqXHR) {
