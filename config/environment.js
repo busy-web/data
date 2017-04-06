@@ -1,10 +1,10 @@
-/*jshint node:true*/
+/* eslint-env node */
 'use strict';
 
 module.exports = function(/* environment, appConfig */) {
-  return {
-	'ember-simple-auth': {
-		'crossOriginWhitelist': ['*']
-	}
-  };
+	return {
+		'ember-simple-auth': {
+			'crossOriginWhitelist': ['*']
+		}
+	};
 };

@@ -54,9 +54,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		}
 
 		let data = hash.data || {};
-		let isString = false;
 		if (typeof data === 'string') {
-			isString = true;
 			data = JSON.parse(data);
 		}
 

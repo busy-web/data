@@ -108,8 +108,8 @@ export default Ember.Mixin.create({
 	 * @method notifyQueue
 	 */
 	notifyQueue: Ember.observer('queue.[]', function() {
-	 	this.run();
- 	}),
+		this.run();
+	}),
 
 	/**
 	 * strips the baseurl and http info from the url and returns

@@ -31,7 +31,7 @@ export default Ember.Mixin.create({
 		// ember data changing the data structure.
 		let _type = type;
 		if (!Ember.isNone(fileObject)) {
-		 	_type = 'GET';
+			_type = 'GET';
 			options.isUpload = true;
 		}
 
