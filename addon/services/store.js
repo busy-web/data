@@ -30,7 +30,7 @@ export default DS.Store.extend({
 
 		return this.query(modelType, _query).then(models => {
 			let nextQuery = {};
-			if (this.nextParams(models, nextQuery)) {
+			if (this.nextParams(models, nextQuery, _query)) {
 				return this.findAll(modelType, nextQuery).then(moreModels => {
 					if (!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content'))) {
 						models.pushObjects(moreModels.get('content'));
