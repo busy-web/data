@@ -43,13 +43,6 @@ export default DS.Store.extend({
 		});
 	},
 
-	queryRecord: function(modelType, query) {
-		return this.query(modelType, query).then(data => {
-			Ember.assert('queryRecord expects at most one model to be returned', data.get('length') <= 1);
-			return data.objectAt(0);
-		});
-	},
-
 	findWhere(modelType, key, value, query={}) {
 		query[key] = value;
 		return this.query(modelType, query);

@@ -77,26 +77,29 @@ export default Ember.Mixin.create({
 				throw new Error(`${requestType} must not return more than 1 record in Model [${primaryModelClass.modelName}]`);
 			}
 
-			rawData = rawData[0];
-			if (Ember.isNone(rawData) && !Ember.isNone(id)) {
-				rawData = {id: id};
-			} else if (Ember.isNone(rawData)) {
-				rawData = {};
-			}
+			rawData = rawData[0] || null;
 		}
+
+		// the new json-api formatted object to return
+		let json = {
+			data: rawData,
+			jsonapi: { version: '1.0' }
+		};
 
 		// get the meta properties as an object from the payload
 		const meta = this.getMetaFromResponse(payload, requestType);
 		Assert.isObject(meta);
 
-		// create a flat json-api object
-		const data = this.flattenResponseData(store, primaryModelClass, rawData);
-
 		// add meta data
-		Ember.set(data, 'meta', meta);
+		Ember.set(json, 'meta', meta);
+
+		if (!Ember.isNone(json.data)) {
+			// create a flat json-api object
+			this.flattenResponseData(store, primaryModelClass, json);
+		}
 
 		// return the resposne
-		return data;
+		return json;
 	},
 
 	/**
@@ -141,13 +144,8 @@ export default Ember.Mixin.create({
 	 * @param data {object|array}
 	 * @return {object}
 	 */
-	flattenResponseData(store, primaryModelClass, data) {
+	flattenResponseData(store, primaryModelClass, json) {
 		Assert.funcNumArgs(arguments, 3, true);
-
-		// the new json-api formatted object to return
-		const json = {
-			jsonapi: { version: '1.0' }
-		};
 
 		// array to track included models
 		const included = [];
@@ -155,15 +153,15 @@ export default Ember.Mixin.create({
 
 		// the data object for the json-api response
 		let _data;
-		if(Ember.typeOf(data) === 'array') {
+		if(Ember.typeOf(json.data) === 'array') {
 			// parse the data array objects
 			_data = [];
-			data.forEach(item => {
+			json.data.forEach(item => {
 				_data.push(this.buildJSON(store, primaryModelClass, type, item, included));
 			});
 		} else {
 			// parse the data object
-			_data = this.buildJSON(store, primaryModelClass, type, data, included);
+			_data = this.buildJSON(store, primaryModelClass, type, json.data, included);
 		}
 
 		// set the included data array
@@ -171,9 +169,6 @@ export default Ember.Mixin.create({
 
 		// set the data property
 		json.data = _data;
-
-		// return the new json-api structure
-		return json;
 	},
 
 	/**
