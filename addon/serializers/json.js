@@ -84,15 +84,19 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 	serialize(snapshot, options) {
 		const data = {};
 
+		let isPatch = false;
 		if (options && options.includeId) {
-			const id = snapshot.id;
-			if (id) {
-				data[Ember.get(this, 'primaryKey')] = id;
+			if (snapshot.id) {
+				isPatch = true;
+				data[Ember.get(this, 'primaryKey')] = snapshot.id;
 			}
 		}
 
+		const changeAttrs = Object.keys(Ember.getWithDefault(snapshot, '_internalModel._inFlightAttributes', {}));
 		snapshot.eachAttribute((key, attribute) => {
-			this.serializeAttribute(snapshot, data, key, attribute);
+			if (!isPatch || changeAttrs.indexOf(key) !== -1) {
+				this.serializeAttribute(snapshot, data, key, attribute);
+			}
 		});
 
 		snapshot.eachRelationship((key, relationship) => {
