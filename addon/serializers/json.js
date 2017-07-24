@@ -83,18 +83,17 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 	serialize(snapshot, options) {
 		const data = {};
+		const isNew = Ember.getWithDefault(snapshot, 'record.isNew', false);
 
-		let isPatch = false;
 		if (options && options.includeId) {
 			if (snapshot.id) {
-				isPatch = true;
 				data[Ember.get(this, 'primaryKey')] = snapshot.id;
 			}
 		}
 
 		const changeAttrs = Object.keys(Ember.getWithDefault(snapshot, '_internalModel._inFlightAttributes', {}));
 		snapshot.eachAttribute((key, attribute) => {
-			if (!isPatch || changeAttrs.indexOf(key) !== -1) {
+			if (isNew || changeAttrs.indexOf(key) !== -1) {
 				this.serializeAttribute(snapshot, data, key, attribute);
 			}
 		});
