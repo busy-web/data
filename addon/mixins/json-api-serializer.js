@@ -266,7 +266,7 @@ export default Ember.Mixin.create({
 			const relationship = {};
 
 			// for a belongsTo relationship set the data as an object with `id` and `type`
-			if (opts.kind === 'belongsTo' && key === 'id') {
+			if (Ember.isNone(opts.options.query) && opts.kind === 'belongsTo' && key === 'id') {
 				relationship.data = null;
 
 				if (!Ember.isNone(id)) {
@@ -283,17 +283,17 @@ export default Ember.Mixin.create({
 				// create data object
 				let link = '';
 				if (!Ember.isNone(opts.options.query)) {
-					const keys = Object.keys(opts.options.query);
-					keys.forEach(item => {
-						let value = opts.options.query[item];
-						link += `&${item}=${value}`;
-					});
+					link += this.buildQueryParams(json, opts.options.query);
 				}
 
 				if (!Ember.isNone(id)) {
 					// add id for data object
 					key = Ember.String.underscore(key);
 					link += `&${key}=${id}`;
+				}
+
+				if (opts.kind === 'belongsTo') {
+					link += `&page_size=1`;
 				}
 
 				if (!Ember.isEmpty(link)) {
@@ -308,6 +308,31 @@ export default Ember.Mixin.create({
 		});
 
 		return data;
+	},
+
+	buildQueryParams(json, query={}, str='') {
+		let link = '';
+		Object.keys(query).forEach(key => {
+			let value = Ember.get(query, key);
+
+			if (!Ember.isEmpty(str)) {
+				key = `${str}[${key}]`;
+			}
+
+			if (Ember.isArray(value)) {
+				value.forEach(val => link += `&${key}[]=${val}`);
+			} else if (!Ember.isNone(value) && typeof value === 'object') {
+				link += this.buildQueryParams(json, value, key);
+			} else {
+				if (/^self/.test(value)) {
+					value = Ember.String.underscore(value.replace(/^self\./, ''));
+					value = Ember.get(json, value);
+				}
+
+				link += `&${key}=${value}`;
+			}
+		});
+		return link;
 	},
 
 	getModelReturnType(store, primaryModelClass, attr) {
