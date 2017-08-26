@@ -4,7 +4,7 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';
+import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
 
 /**
  * @class
@@ -34,51 +34,92 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	version: 1,
 	debug: false,
 
-	ajaxOptions() {
-		const hash = this._super(...arguments);
+	urlForRequest(params) {
+		let url = this._super(params);
 
 		// split the params from the url
-		const [url, params] = hash.url.split('?');
+		const [ host, query] = url.split('?');
 
 		// add url parms like version or debug
-		hash.url = this.addUrlParams(url);
+		url = this.addUrlParams(host);
 
 		// put the params back on the url string but first check
 		// to see if the start `?` query params symbol is already there.
-		if (!Ember.isEmpty(params)) {
-			if (!/\?/.test(hash.url)) {
-				hash.url = hash.url + '?' + params;
+		if (!Ember.isEmpty(query)) {
+			if (!/\?/.test(url)) {
+				url = url + '?' + query;
 			} else {
-				hash.url = hash.url + '&' + params;
+				url = url + '&' + query;
 			}
 		}
 
-		let data = hash.data || {};
-		if (typeof data === 'string') {
-			data = JSON.parse(data);
-		}
-
-		if (hash.data && hash.data.filter) {
-			this.changeFilter(hash);
-		}
-
-		if (hash.contentType !== false) {
-			delete hash.contentType;
-		}
-
-		if (!data.jsonrpc) {
-			if (hash.type === 'GET' && hash.isUpload !== true) {
-				this.addDefaultParams(data);
-			}
-			hash.data = data;
-		} else {
-      //hash.contentType = 'application/json; charset=utf-8';
-			hash.type = "POST";
-			hash.dataType = "json";
-		}
-
-		return hash;
+		return url;
 	},
+
+	dataForRequest(params) {
+		const data = this._super(params) || {};
+		const getters = ['findRecord', 'find', 'findAll', 'findMany', 'findHasMany', 'findBelongsTo', 'query', 'queryRecord', 'queryRPC'];
+
+		if (getters.indexOf(params.requestType) !== -1) {
+			this.addDefaultParams(data, params);
+		}
+
+		if (data.filter) {
+			this.changeFilter(data);
+		}
+
+		return data;
+	},
+
+	_hasCustomizedAjax() {
+		return false;
+	},
+
+	//ajaxOptions() {
+	//	const hash = this._super(...arguments);
+
+	//	// split the params from the url
+	//	const [url, params] = hash.url.split('?');
+
+	//	// add url parms like version or debug
+	//	hash.url = this.addUrlParams(url);
+
+	//	// put the params back on the url string but first check
+	//	// to see if the start `?` query params symbol is already there.
+	//	if (!Ember.isEmpty(params)) {
+	//		if (!/\?/.test(hash.url)) {
+	//			hash.url = hash.url + '?' + params;
+	//		} else {
+	//			hash.url = hash.url + '&' + params;
+	//		}
+	//	}
+
+	//	let data = hash.data || {};
+	//	if (typeof data === 'string') {
+	//		data = JSON.parse(data);
+	//	}
+
+	//	if (hash.data && hash.data.filter) {
+	//		this.changeFilter(hash);
+	//	}
+
+	//	if (hash.contentType !== false) {
+	//		delete hash.contentType;
+	//	}
+
+	//	if (!data.jsonrpc) {
+	//		if (hash.type === 'GET' && hash.isUpload !== true) {
+	//			this.addDefaultParams(data);
+	//		}
+	//		hash.data = data;
+	//	} else {
+  //    //hash.contentType = 'application/json; charset=utf-8';
+	//		hash.type = "POST";
+	//		hash.dataType = "json";
+	//	}
+
+	//	return hash;
+	//},
 
 	addDefaultParams(/*query*/) {
 		return;

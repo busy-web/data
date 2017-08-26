@@ -40,27 +40,67 @@ export default Ember.Mixin.create({
 		Assert.funcNumArgs(arguments, 3, true);
 		Assert.isObject(query);
 
-		const url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
 		if (this.sortQueryParams) {
 			query = this.sortQueryParams(query);
 		}
 
-		const method = type.proto()._methodName;
-		Assert.test('The rpc model has no _methodName to call.', !Ember.isNone(method));
-
-		const hash = {
-			method,
-			params: query,
-			id: 1,
-			jsonrpc: '2.0'
-		};
-
-		return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
+		//return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
+		const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc', disableBatch: true });
+		return this._makeRequest(request).then(data => {
 			data = data.result;
 			if(!Ember.isArray(data.data)) {
 				data.data = Ember.A([data.data]);
 			}
 			return data;
 		});
+	},
+
+	dataForRequest(params) {
+		if (params._requestType === 'rpc') {
+			const method = params.type.proto()._methodName;
+			Assert.test('The rpc model has no _methodName to call.', !Ember.isNone(method));
+			return {
+				method,
+				params: params.query,
+				id: 1,
+				jsonrpc: '2.0'
+			};
+		}
+		return this._super(params);
+	},
+
+	headersForRequest(params) {
+		const headers = this._super(params);
+		if (params._requestType === 'rpc') {
+			headers.Accept = 'application/json; charset=utf-8';
+		}
+		return headers;
+	},
+
+	methodForRequest(params) {
+		if (params._requestType === 'rpc') {
+			return "POST";
+		}
+		return this._super(params);
+	},
+
+	urlForRequest(params) {
+		let url = this._super(params);
+		if (params._requestType === 'rpc') {
+			const regx = new RegExp(params.type.modelName);
+			url = url.replace(regx, params.type.proto()._clientName);
+		}
+		return url;
+	},
+
+	_requestToJQueryAjaxHash(params) {
+		let hash = this._super(...arguments) || {};
+
+		if (params._requestType === 'rpc') {
+			hash.contentType = 'application/json; charset=utf-8';
+			hash.dataType = "json";
+		}
+
+		return hash;
 	}
 });

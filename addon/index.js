@@ -29,6 +29,10 @@ DS.Model.reopen({
 });
 
 DS.Model.reopenClass({
+	errorResponse() {
+		//debugger;
+	},
+
 	eachRelationship(callback, binding) {
 		Ember.get(this, 'relationshipsByName').forEach(function(relationship, name) {
 			if (relationship.options.modelName !== relationship.type) {

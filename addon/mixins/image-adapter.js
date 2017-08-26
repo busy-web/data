@@ -13,46 +13,24 @@ import { Assert } from 'busy-utils';
  * @extends Ember.Mixin
  */
 export default Ember.Mixin.create({
-	/**
-	 * sets up the parameters for the ajax call
-	 *
-	 * @private
-	 * @method ajaxOptions
-	 * @param url {string}
-	 * @param type {object} model type
-	 * @param options {object} data options
-	 * @returns {object} ajax call object
-	 */
-	ajaxOptions(url, type, options={}) {
-		// get a file object if it exists.
-		const fileObject = Ember.get(options, 'data._fileObject');
 
-		// if the fileObject exists then change the type to GET to avoid
-		// ember data changing the data structure.
-		let _type = type;
-		if (!Ember.isNone(fileObject)) {
-			_type = 'GET';
-			options.isUpload = true;
+	_requestToJQueryAjaxHash(request) {
+		let isFile = false;
+		let method;
+		if (request.data && typeof request.data === 'object' && request.data._fileObject) {
+			isFile = true;
+			method = request.method;
+			request.method = "GET";
+			request.headers.Accept = 'application/json; charset=utf-8';
 		}
 
-		// let ember data add ajaxOptions
-		const hash = this._super(url, _type, options);
+		const hash = this._super(request) || {};
 
-		// if type was changed then reset type
-		// to what it was meant to be.
-		if (_type !== type) {
-			hash.type = type;
-			delete hash.isUpload;
-		}
-
-		// set up the content type and data object
-		//
-		// if _fileObject is set then set up a file upload
-		// else if type is post set up POST content and data object
-		// otherwise the data and content are left alone
-		if (!Ember.isNone(fileObject)) {
+		if (isFile) {
+			hash.method = method;
 			this.setupUpload(hash);
 		}
+
 		return hash;
 	},
 
@@ -61,7 +39,7 @@ export default Ember.Mixin.create({
 	 *
 	 * @private
 	 * @method setupUpload
-	 * @param hash {object}
+	 * @params hash {object}
 	 * @returns {object}
 	 */
 	setupUpload(hash) {
@@ -113,7 +91,7 @@ export default Ember.Mixin.create({
 	 * converts data object into a formdata object
 	 *
 	 * @method convertDataForUpload
-	 * @param data {object}
+	 * @params data {object}
 	 * @returns {object}
 	 */
 	convertDataForUpload(data) {
