@@ -224,6 +224,15 @@ export default Ember.Mixin.create({
 		return;
 	},
 
+	_requestUrl() {
+		const type = { modelName: 'batch' };
+		const requestType = 'query';
+		const query = {};
+
+
+		return this.urlForRequest({ type, requestType, query });
+	},
+
 	/**
 	 * Sends a batch of api calls to the api with and rpc style call
 	 *
@@ -236,10 +245,12 @@ export default Ember.Mixin.create({
 		Assert.isArray(batch);
 
 		// get the url
-		const url = this.buildURL('batch');
+		const url = this._requestUrl();
 
 		// prepare the batched calls
 		const req = this.prepareBatch(batch);
+
+		const requestData = { method: 'rpc', url };
 
 		// set up the rpc data
 		const options = {
@@ -257,16 +268,38 @@ export default Ember.Mixin.create({
 		const hash = this.ajaxOptions(url, 'POST', options);
 		hash.contentType = 'application/json; charset=utf-8';
 
-		var _this = this;
+		const adapter = this;
 		hash.success = function(payload, textStatus, jqXHR) {
-			_this.success(payload.result, req, textStatus, jqXHR);
+			payload = payload.result || payload;
+			if (payload === '') {
+				payload = {};
+			}
+			payload._type = "BatchAdapter";
+
+      let response = ajaxSuccess(adapter, jqXHR, payload, requestData);
+			if (response && response.isAdapterError) {
+				Ember.RSVP.reject(response);
+			} else {
+				adapter.success(response, req, textStatus, jqXHR);
+			}
 		};
+
 		hash.error = function(jqXHR, textStatus, errorThrown) {
-			_this.handleError(jqXHR, textStatus, errorThrown);
+			let responseData = {
+				textStatus,
+				errorThrown
+			};
+      let error = ajaxError(adapter, jqXHR, requestData, responseData);
+			Ember.Error(error);
 		};
 
 		// send ajax call
 		Ember.$.ajax(hash);
+	},
+
+	handleResponse(status, headers, payload, requestData) {
+		payload.__type = "BatchAdapter";
+		return this._super(status, headers, payload, requestData);
 	},
 
 	/**
@@ -304,37 +337,32 @@ export default Ember.Mixin.create({
 
 		const gStatus = Ember.get(jqXHR, 'status');
 		const gStatusText = Ember.get(jqXHR, 'statusText') || textStatus;
-		// make sure batch response is good
-		if (Ember.get(response, 'success') === true) {
-			// get the response results
-			const results = Ember.get(response, 'data.results') || {};
-			handler.responses.forEach(item => {
-				// get the key from the hashMap and use that
-				// to get the data for this items call
-				const key = handler.hashMap[item.hashKey];
-				const data = Ember.get(results, key);
-				const status = this.getBatchStatusForModel(data, gStatus);
-				const statusText = this.getBatchStatusTextForModel(data, gStatusText);
+		const results = Ember.get(response, 'data.results') || {};
 
-				// create an xhr response for this model
-				const xhr = Ember.merge({}, jqXHR);
-				xhr.statusText = statusText;
-				xhr.status = status;
-				xhr.responseText = JSON.stringify(data);
-				xhr.responseJSON = data;
+		handler.responses.forEach(item => {
+			// get the key from the hashMap and use that
+			// to get the data for this items call
+			const key = handler.hashMap[item.hashKey];
+			const data = Ember.get(results, key);
+			const status = this.getBatchStatusForModel(data, gStatus);
+			const statusText = this.getBatchStatusTextForModel(data, gStatusText);
 
-				// get the context model to call success or error on.
-				const hash = item.hash;
-				const context = hash.context;
-				if (status === 200) {
-					hash.success.call(context, data, 'success', xhr);
-				} else {
-					hash.error.call(context, xhr, 'error', xhr.statusText);
-				}
-			});
-		} else {
-			this.handleError(jqXHR);
-		}
+			// create an xhr response for this model
+			const xhr = Ember.merge({}, jqXHR);
+			xhr.statusText = statusText;
+			xhr.status = status;
+			xhr.responseText = JSON.stringify(data);
+			xhr.responseJSON = data;
+
+			// get the context model to call success or error on.
+			const hash = item.hash;
+			const context = hash.context;
+			if (status === 200) {
+				hash.success.call(context, data, 'success', xhr);
+			} else {
+				hash.error.call(context, xhr, 'error', xhr.statusText);
+			}
+		});
 	},
 
 	/**
@@ -369,35 +397,80 @@ export default Ember.Mixin.create({
 		Assert.isObject(result);
 
 		return Ember.get(result, 'status') || defaultValue;
-	},
-
-	/**
-	 * handles errors for the batch call itself then throws
-	 * an error or invalidates the session if not authorized.
-	 *
-	 * @private
-	 * @method handleError
-	 * @param jqXHR {object} api response object
-	 * @param textStatus {string} error status string
-	 * @param errorThrown {string} error message
-	 */
-	handleError(jqXHR, textStatus, errorThrown) {
-    if (jqXHR.status === 401 && this.get('session.isAuthenticated')) {
-      this.get('session').invalidate();
-    } else {
-			let error;
-			if (errorThrown instanceof Error) {
-				error = errorThrown;
-			} else if (textStatus === 'timeout') {
-				error = new DS.TimeoutError();
-			} else if (textStatus === 'abort') {
-				error = new DS.AbortError();
-			} else if (textStatus === 'error') {
-				error = new Error(`BATCH ERROR: ${errorThrown}`);
-			} else {
-				error = new Error(`BATCH ERROR: ${jqXHR.responseText}`);
-			}
-			throw error;
-		}
 	}
 });
+
+const CLRF = '\u000d\u000a';
+function parseResponseHeaders(headersString) {
+  let headers = Object.create(null);
+
+  if (!headersString) {
+    return headers;
+  }
+
+  let headerPairs = headersString.split(CLRF);
+  for (let i = 0; i < headerPairs.length; i++) {
+    let header = headerPairs[i];
+    let j = 0;
+    let foundSep = false;
+
+    for (; j < header.length; j++) {
+      if (header.charCodeAt(j) === 58 /* ':' */) {
+        foundSep = true;
+        break;
+      }
+    }
+
+    if (foundSep === false) {
+      continue;
+    }
+
+    let field = header.substring(0, j).trim();
+    let value = header.substring(j + 1, header.length).trim();
+
+    if (value) {
+      headers[field] = value;
+    }
+  }
+  return headers;
+}
+
+
+function ajaxSuccess(adapter, jqXHR, payload, requestData) {
+  let response;
+  try {
+    response = adapter.handleResponse(
+      jqXHR.status,
+      parseResponseHeaders(jqXHR.getAllResponseHeaders()),
+      payload,
+      requestData
+    );
+  } catch (error) {
+		return new DS.AdapterError(error);
+  }
+
+  return response;
+}
+
+function ajaxError(adapter, jqXHR, requestData, responseData) {
+  let error;
+  if (responseData.errorThrown instanceof Error) {
+    error = responseData.errorThrown;
+  } else if (responseData.textStatus === 'timeout') {
+    error = new DS.TimeoutError();
+  } else if (responseData.textStatus === 'abort' || jqXHR.status === 0) {
+    error = new DS.AbortError();
+  } else {
+    try {
+      error = adapter.handleResponse(
+        jqXHR.status,
+        parseResponseHeaders(jqXHR.getAllResponseHeaders()),
+        adapter.parseErrorResponse(jqXHR.responseText) || responseData.errorThrown,
+        requestData
+      );
+    } catch (e) {
+      error = e;
+    }
+  }
+  return error;
+}

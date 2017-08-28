@@ -5,6 +5,7 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
+import _error from 'busy-data/utils/error';
 
 /**
  * @class
@@ -56,6 +57,30 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		return url;
 	},
 
+	handleResponse(status, headers, payload, requestData) {
+		payload.__type = "JSONAPIAdapter";
+		if (status === 429) {
+			payload.errors = _error.normalizeAdapterError('BATCH API', status, 4291, 'Api rate limit reached');
+			let errors = this.normalizeErrorResponse(status, headers, payload);
+			let detailedMessage = this.generatedDetailedMessage(status, headers, payload, requestData);
+			return new DS.AdapterError(errors, detailedMessage);
+		}
+
+		return this._super(status, headers, payload, requestData);
+	},
+
+	payloadCodes(payload) {
+		return Ember.get(payload, 'code');
+	},
+
+	payloadDetails(payload) {
+		return Ember.get(payload, 'details');
+	},
+
+	parseErrors(payload, status) {
+		payload.errors = _error.parseAdapterErrors(payload.__type, status, this.payloadCodes(payload), this.payloadDetails(payload));
+	},
+
 	dataForRequest(params) {
 		const data = this._super(params) || {};
 		const getters = ['findRecord', 'find', 'findAll', 'findMany', 'findHasMany', 'findBelongsTo', 'query', 'queryRecord', 'queryRPC'];
@@ -65,6 +90,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		}
 
 		if (data.filter) {
+			debugger;
 			this.changeFilter(data);
 		}
 
@@ -74,52 +100,6 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	_hasCustomizedAjax() {
 		return false;
 	},
-
-	//ajaxOptions() {
-	//	const hash = this._super(...arguments);
-
-	//	// split the params from the url
-	//	const [url, params] = hash.url.split('?');
-
-	//	// add url parms like version or debug
-	//	hash.url = this.addUrlParams(url);
-
-	//	// put the params back on the url string but first check
-	//	// to see if the start `?` query params symbol is already there.
-	//	if (!Ember.isEmpty(params)) {
-	//		if (!/\?/.test(hash.url)) {
-	//			hash.url = hash.url + '?' + params;
-	//		} else {
-	//			hash.url = hash.url + '&' + params;
-	//		}
-	//	}
-
-	//	let data = hash.data || {};
-	//	if (typeof data === 'string') {
-	//		data = JSON.parse(data);
-	//	}
-
-	//	if (hash.data && hash.data.filter) {
-	//		this.changeFilter(hash);
-	//	}
-
-	//	if (hash.contentType !== false) {
-	//		delete hash.contentType;
-	//	}
-
-	//	if (!data.jsonrpc) {
-	//		if (hash.type === 'GET' && hash.isUpload !== true) {
-	//			this.addDefaultParams(data);
-	//		}
-	//		hash.data = data;
-	//	} else {
-  //    //hash.contentType = 'application/json; charset=utf-8';
-	//		hash.type = "POST";
-	//		hash.dataType = "json";
-	//	}
-
-	//	return hash;
-	//},
 
 	addDefaultParams(/*query*/) {
 		return;
@@ -134,5 +114,20 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 			}
 		}
 		delete hash.data.filter;
+	},
+
+
+  _stripIDFromURL(store, snapshot) {
+		if (snapshot._internalModel.link) {
+      const serializer = store.serializerFor(snapshot.modelName);
+			const key = snapshot._internalModel.foreignKey;
+			const id = snapshot._internalModel.__data[key];
+			const regx = new RegExp(`${serializer.keyForAttribute(key)}=${id}`);
+			let url = snapshot._internalModel.link;
+			url = url.replace(regx, '').replace(/\?&/, '?').replace(/&&/, '&').replace(/\?$/, '');
+			return url;
+		} else {
+			return this._super(store, snapshot);
+		}
 	}
 });

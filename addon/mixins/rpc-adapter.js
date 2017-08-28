@@ -45,9 +45,8 @@ export default Ember.Mixin.create({
 		}
 
 		//return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
-		const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc', disableBatch: true });
+		const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
 		return this._makeRequest(request).then(data => {
-			data = data.result;
 			if(!Ember.isArray(data.data)) {
 				data.data = Ember.A([data.data]);
 			}
@@ -93,12 +92,21 @@ export default Ember.Mixin.create({
 		return url;
 	},
 
+	_requestFor(params) {
+		const res = this._super(params);
+		if (params._requestType === 'rpc') {
+			res._requestType = 'rpc';
+		}
+		return res;
+	},
+
 	_requestToJQueryAjaxHash(params) {
 		let hash = this._super(...arguments) || {};
 
 		if (params._requestType === 'rpc') {
 			hash.contentType = 'application/json; charset=utf-8';
 			hash.dataType = "json";
+			hash.disableBatch = true;
 		}
 
 		return hash;
