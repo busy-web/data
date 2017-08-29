@@ -16,18 +16,14 @@ export default Ember.Mixin.create({
 
 	_requestToJQueryAjaxHash(request) {
 		let isFile = false;
-		let method;
 		if (request.data && typeof request.data === 'object' && request.data._fileObject) {
 			isFile = true;
-			method = request.method;
-			request.method = "GET";
 			request.headers.Accept = 'application/json; charset=utf-8';
 		}
 
 		const hash = this._super(request) || {};
 
 		if (isFile) {
-			hash.method = method;
 			this.setupUpload(hash);
 		}
 

@@ -283,7 +283,13 @@ export default Ember.Mixin.create({
 				// create data object
 				let link = '';
 				if (!Ember.isNone(opts.options.query)) {
-					link += this.buildQueryParams(json, opts.options.query);
+					if (this.validateQuery(json, opts.options.query)) {
+						link += this.buildQueryParams(json, opts.options.query);
+
+						if (opts.kind === 'belongsTo') {
+							link += `&page_size=1`;
+						}
+					}
 				}
 
 				if (!Ember.isNone(id)) {
@@ -292,15 +298,15 @@ export default Ember.Mixin.create({
 					link += `&${key}=${id}`;
 				}
 
-				if (opts.kind === 'belongsTo') {
-					link += `&page_size=1`;
-				}
-
 				if (!Ember.isEmpty(link)) {
 					link = link.replace(/^&/, '?');
 					relationship.links = { related: `/${opts.type}${link}` };
 				} else {
-					relationship.data = [];
+					if (opts.kind === 'belongsTo') {
+						relationship.data = null;
+					} else {
+						relationship.data = [];
+					}
 				}
 
 				data[Ember.String.dasherize(opts.key)] = relationship;
@@ -308,6 +314,21 @@ export default Ember.Mixin.create({
 		});
 
 		return data;
+	},
+
+	validateQuery(json, query) {
+		let isvalid = true;
+		Object.keys(query).forEach(key => {
+			let value = Ember.get(query, key);
+			if (/^self/.test(value)) {
+				value = this.keyForAttribute(value.replace(/^self\./, ''));
+				value = Ember.get(json, value);
+				if (Ember.isNone(value)) {
+					isvalid = false;
+				}
+			}
+		});
+		return isvalid;
 	},
 
 	buildQueryParams(json, query={}, str='') {
@@ -325,7 +346,7 @@ export default Ember.Mixin.create({
 				link += this.buildQueryParams(json, value, key);
 			} else {
 				if (/^self/.test(value)) {
-					value = Ember.String.underscore(value.replace(/^self\./, ''));
+					value = this.keyForAttribute(value.replace(/^self\./, ''));
 					value = Ember.get(json, value);
 				}
 

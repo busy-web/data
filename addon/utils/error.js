@@ -8,7 +8,9 @@ _error.reopenClass({
 		status = parseInt(status, 10);
 
 		if (code) {
-			status = 400;
+			if (!status) {
+				status = 400;
+			}
 			code = parseInt(code, 10);
 		}
 

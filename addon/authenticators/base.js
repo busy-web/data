@@ -22,6 +22,10 @@ export default Base.extend({
 	},
 
 	authenticate(options) {
+		if (options.auth) {
+			return Ember.RSVP.resolve(options.auth);
+		}
+
 		Ember.assert("You must provide 'username and password' or 'token' to authenticate", (options.token || (options.username && options.password)));
 
 		options.success = typeof options.success === 'function' ? options.success : function(){};

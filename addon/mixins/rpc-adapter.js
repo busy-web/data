@@ -100,11 +100,12 @@ export default Ember.Mixin.create({
 		return res;
 	},
 
-	_requestToJQueryAjaxHash(params) {
-		let hash = this._super(...arguments) || {};
+	_requestToJQueryAjaxHash(request) {
+		let hash = this._super(request) || {};
 
-		if (params._requestType === 'rpc') {
-			hash.contentType = 'application/json; charset=utf-8';
+		if (request._requestType === 'rpc') {
+      hash.contentType = 'application/json; charset=utf-8';
+      hash.data = JSON.stringify(request.data);
 			hash.dataType = "json";
 			hash.disableBatch = true;
 		}

@@ -58,9 +58,12 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	},
 
 	handleResponse(status, headers, payload, requestData) {
-		payload.__type = "JSONAPIAdapter";
+		if (!requestData.isBatch) {
+			payload.__type = "JSONAPIAdapter";
+		}
+
 		if (status === 429) {
-			payload.errors = _error.normalizeAdapterError('BATCH API', status, 4291, 'Api rate limit reached');
+			payload.errors = _error.normalizeAdapterError('BATCH API', status, 429, 'Api rate limit reached');
 			let errors = this.normalizeErrorResponse(status, headers, payload);
 			let detailedMessage = this.generatedDetailedMessage(status, headers, payload, requestData);
 			return new DS.AdapterError(errors, detailedMessage);
@@ -81,27 +84,37 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		payload.errors = _error.parseAdapterErrors(payload.__type, status, this.payloadCodes(payload), this.payloadDetails(payload));
 	},
 
-	dataForRequest(params) {
-		const data = this._super(params) || {};
-		const getters = ['findRecord', 'find', 'findAll', 'findMany', 'findHasMany', 'findBelongsTo', 'query', 'queryRecord', 'queryRPC'];
+	_requestToJQueryAjaxHash(request) {
+		const hash = this._super({ url: request.url, method: "GET", headers: request.headers, data: request.data }) || {};
+		hash.type = request.method;
+		hash.data = hash.data || {};
 
-		if (getters.indexOf(params.requestType) !== -1) {
-			this.addDefaultParams(data, params);
+		if (hash.data && hash.data.filter) {
+			this.changeFilter(hash);
 		}
 
-		if (data.filter) {
-			debugger;
-			this.changeFilter(data);
+		this.addDefaultParams(hash);
+
+		return hash;
+	},
+
+	methodForRequest(params) {
+		let { requestType } = params;
+
+		switch (requestType) {
+			case 'createRecord': return 'POST';
+			case 'updateRecord': return 'PATCH';
+			case 'deleteRecord': return 'DELETE';
 		}
 
-		return data;
+		return 'GET';
 	},
 
 	_hasCustomizedAjax() {
 		return false;
 	},
 
-	addDefaultParams(/*query*/) {
+	addDefaultParams(/*hash*/) {
 		return;
 	},
 
@@ -116,18 +129,24 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		delete hash.data.filter;
 	},
 
+	_makeRequest(request) {
+		const _req = Ember.merge({}, request);
+		return this._super(_req).catch(err => {
+			if (err.errors && err.errors.status === 429) {
+				return this._waitPromise(300).then(() => {
+					return this._makeRequest(request);
+				});
+			} else {
+				return Ember.RSVP.reject(err);
+			}
+		});
+	},
 
-  _stripIDFromURL(store, snapshot) {
-		if (snapshot._internalModel.link) {
-      const serializer = store.serializerFor(snapshot.modelName);
-			const key = snapshot._internalModel.foreignKey;
-			const id = snapshot._internalModel.__data[key];
-			const regx = new RegExp(`${serializer.keyForAttribute(key)}=${id}`);
-			let url = snapshot._internalModel.link;
-			url = url.replace(regx, '').replace(/\?&/, '?').replace(/&&/, '&').replace(/\?$/, '');
-			return url;
-		} else {
-			return this._super(store, snapshot);
-		}
-	}
+	_waitPromise(time=1) {
+		return new Ember.RSVP.Promise(resolve => {
+			Ember.run.later(() => {
+				Ember.run(null, resolve, null);
+			}, time);
+		});
+	},
 });

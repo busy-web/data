@@ -250,7 +250,7 @@ export default Ember.Mixin.create({
 		// prepare the batched calls
 		const req = this.prepareBatch(batch);
 
-		const requestData = { method: 'rpc', url };
+		const requestData = { method: 'rpc', url, isBatch: true };
 
 		// set up the rpc data
 		const options = {
@@ -285,10 +285,7 @@ export default Ember.Mixin.create({
 		};
 
 		hash.error = function(jqXHR, textStatus, errorThrown) {
-			let responseData = {
-				textStatus,
-				errorThrown
-			};
+			let responseData = { textStatus, errorThrown };
       let error = ajaxError(adapter, jqXHR, requestData, responseData);
 			Ember.Error(error);
 		};
@@ -298,7 +295,9 @@ export default Ember.Mixin.create({
 	},
 
 	handleResponse(status, headers, payload, requestData) {
-		payload.__type = "BatchAdapter";
+		if (requestData.isBatch) {
+			payload.__type = "BatchAdapter";
+		}
 		return this._super(status, headers, payload, requestData);
 	},
 
