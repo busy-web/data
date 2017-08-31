@@ -54,6 +54,27 @@ export default Ember.Mixin.create({
 		});
 	},
 
+	rpcRequest(store, modelName, method, query, host) {
+		Assert.funcNumArgs(arguments, 5);
+		Assert.isObject(query);
+
+		if (this.sortQueryParams) {
+			query = this.sortQueryParams(query);
+		}
+
+		const type = Ember.Object.extend({
+			_methodName: method,
+			_clientName: modelName,
+			_hostName: host
+		});
+
+		type.reopenClass({ modelName });
+
+		//return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
+		const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
+		return this._makeRequest(request);
+	},
+
 	dataForRequest(params) {
 		if (params._requestType === 'rpc') {
 			const method = params.type.proto()._methodName;
@@ -86,8 +107,17 @@ export default Ember.Mixin.create({
 	urlForRequest(params) {
 		let url = this._super(params);
 		if (params._requestType === 'rpc') {
-			const regx = new RegExp(params.type.modelName);
-			url = url.replace(regx, params.type.proto()._clientName);
+			const client = params.type.proto()._clientName;
+			if (params.type.modelName !== client) {
+				const regx = new RegExp(params.type.modelName);
+				url = url.replace(regx, client);
+			}
+
+			const host = params.type.proto()._hostName;
+			if (!Ember.isEmpty(host) && this.get('host') !== host) {
+				const regx = new RegExp(this.get('host'));
+				url = url.replace(regx, host);
+			}
 		}
 		return url;
 	},

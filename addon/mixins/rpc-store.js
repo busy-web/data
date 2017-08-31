@@ -3,11 +3,7 @@
  *
  */
 import Ember from 'ember';
-import RPCAdapter from 'busy-data/adapters/rpc-adapter';
 import { Assert } from 'busy-utils';
-
-/***/
-const { getOwner } = Ember;
 
 /**
  * `BusyData/Mixins/RpcStore`
@@ -36,15 +32,9 @@ export default Ember.Mixin.create({
 		Assert.isObject(params);
 		Assert.isString(baseURL);
 
-		// initialize the rpc client
-		const client = RPCAdapter.create(getOwner(this).ownerInjection(), {url: type});
-
-		// set the url if baseURL is provided
-		if (!Ember.isEmpty(baseURL)) {
-			client.set('baseURL', baseURL);
-		}
+		const adapter = this._instanceCache.get('adapter');
 
 		// call the rpc method and return the promise.
-		return client.call(method, params);
+		return adapter.rpcRequest(this, type, method, params, baseURL);
 	}
 });
