@@ -5,6 +5,6 @@ module('Unit | Utility | error');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let result = error();
+  let result = error;
   assert.ok(result);
 });
