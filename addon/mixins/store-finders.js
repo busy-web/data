@@ -3,6 +3,7 @@
  *
  */
 import Ember from 'ember';
+import { Assert } from 'busy-utils';
 
 /***/
 const MAX_PAGE_SIZE = 100;
@@ -126,5 +127,34 @@ export default Ember.Mixin.create({
 		}
 
 		return _findWhereIn(this, modelType, queryList, query);
+	},
+
+	/**
+	 * Simple rpc request method that does not use the ember-data
+	 * model layer.
+	 *
+	 * @public
+	 * @method rpcRequest
+	 * @param type {string} The RPC client to call the method
+	 * @param method {string} The RPC method on the client
+	 * @param params {object} The params to send to the method
+	 * @param baseURL {string} Optional, Override url to the rpc client if different from the normal baseURL.
+	 * @return {Ember.RSVP.Promise}
+	 */
+	rpcRequest(type, method, params={}, baseURL='') {
+		Assert.funcNumArgs(arguments, 4);
+		Assert.isString(type);
+		Assert.isString(method);
+		Assert.isObject(params);
+		Assert.isString(baseURL);
+
+		const adapter = this._instanceCache.get('adapter');
+
+		if (!adapter.rpcRequest) {
+			throw new Error("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter");
+		} else {
+			// call the rpc method and return the promise.
+			return adapter.rpcRequest(this, type, method, params, baseURL);
+		}
 	}
 });
