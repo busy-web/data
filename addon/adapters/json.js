@@ -84,16 +84,22 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		payload.errors = _error.parseAdapterErrors(payload.__type, status, this.payloadCodes(payload), this.payloadDetails(payload));
 	},
 
+	_requestFor(params) {
+		const request = this._super(params);
+		request.requestType = params.requestType;
+		return request;
+	},
+
 	_requestToJQueryAjaxHash(request) {
 		const hash = this._super({ url: request.url, method: "GET", headers: request.headers, data: request.data }) || {};
 		hash.type = request.method;
 		hash.data = hash.data || {};
 
 		if (hash.data && hash.data.filter) {
-			this.changeFilter(hash);
+			this.changeFilter(hash, request.requestType);
 		}
 
-		this.addDefaultParams(hash);
+		this.addDefaultParams(hash, request.requestType);
 
 		return hash;
 	},
