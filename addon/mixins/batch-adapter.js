@@ -6,7 +6,7 @@ import Ember from 'ember';
 import DS from 'ember-data';
 import { Assert } from 'busy-utils';
 
-const { get, set, isNone } = Ember;
+const { get, set, isNone, merge, RSVP, run, observer } = Ember;
 
 /**
  * `BusyData/Mixins/BatchAdapter`
@@ -92,7 +92,7 @@ export default Ember.Mixin.create({
 			this.set('waiting', true);
 
 			// set wait to maxBatchWait
-			Ember.run.later(this, function() {
+			run.later(this, function() {
 				// set waiting to false
 				this.set('waiting', false);
 
@@ -109,7 +109,7 @@ export default Ember.Mixin.create({
 	 * @private
 	 * @method notifyQueue
 	 */
-	notifyQueue: Ember.observer('queue.[]', function() {
+	notifyQueue: observer('queue.[]', function() {
 		this.run();
 	}),
 
@@ -220,7 +220,7 @@ export default Ember.Mixin.create({
 			// create a hashkey for this models query so
 			// if two identical calls come in the call only gets made once.
 			const hashKey = this.checksum(hash.url, hash.type, hash.data);
-			if (Ember.isNone(hashMap[hashKey])) {
+			if (isNone(hashMap[hashKey])) {
 				// get the url type and data for this call
 				const url = this.getName(hash.url);
 				const data = this.getData(hash);
@@ -306,7 +306,7 @@ export default Ember.Mixin.create({
 
       let response = ajaxSuccess(adapter, jqXHR, payload, requestData);
 			if (response && response.isAdapterError) {
-				Ember.RSVP.reject(response);
+				RSVP.reject(response);
 			} else {
 				adapter.success(response, req, textStatus, jqXHR);
 			}
@@ -338,7 +338,7 @@ export default Ember.Mixin.create({
 	 * @param hash
 	 */
 	_ajaxRequest(hash) {
-		if (this.get('isBatchEnabled') === true && Ember.get(hash, 'disableBatch') !== true) {
+		if (this.get('isBatchEnabled') === true && get(hash, 'disableBatch') !== true) {
 			this.get('queue').pushObject(hash);
 		} else {
 			this._super(...arguments);
@@ -362,20 +362,20 @@ export default Ember.Mixin.create({
 		Assert.isString(textStatus);
 		Assert.isObject(jqXHR);
 
-		const gStatus = Ember.get(jqXHR, 'status');
-		const gStatusText = Ember.get(jqXHR, 'statusText') || textStatus;
-		const results = Ember.get(response, 'data.results') || {};
+		const gStatus = get(jqXHR, 'status');
+		const gStatusText = get(jqXHR, 'statusText') || textStatus;
+		const results = get(response, 'data.results') || {};
 
 		handler.responses.forEach(item => {
 			// get the key from the hashMap and use that
 			// to get the data for this items call
 			const key = handler.hashMap[item.hashKey];
-			const data = Ember.get(results, key);
+			const data = get(results, key);
 			const status = this.getBatchStatusForModel(data, gStatus);
 			const statusText = this.getBatchStatusTextForModel(data, gStatusText);
 
 			// create an xhr response for this model
-			const xhr = Ember.merge({}, jqXHR);
+			const xhr = merge({}, jqXHR);
 			xhr.statusText = statusText;
 			xhr.status = status;
 			xhr.responseText = JSON.stringify(data);
@@ -406,7 +406,7 @@ export default Ember.Mixin.create({
 	getBatchStatusTextForModel(result, defaultValue) {
 		Assert.isObject(result);
 
-		return Ember.get(result, 'statusText') || defaultValue;
+		return get(result, 'statusText') || defaultValue;
 	},
 
 	/**
@@ -423,7 +423,7 @@ export default Ember.Mixin.create({
 	getBatchStatusForModel(result, defaultValue) {
 		Assert.isObject(result);
 
-		return Ember.get(result, 'status') || defaultValue;
+		return get(result, 'status') || defaultValue;
 	}
 });
 
