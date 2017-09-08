@@ -6,6 +6,8 @@ import Ember from 'ember';
 import DS from 'ember-data';
 import { Assert } from 'busy-utils';
 
+const { get, set, isNone } = Ember;
+
 /**
  * `BusyData/Mixins/BatchAdapter`
  *
@@ -133,18 +135,44 @@ export default Ember.Mixin.create({
 
 	getData(hash={}) {
 		let url = hash.url;
-		const data = hash.data || {};
-		const [ mainUrl, query ] = url.split('?');
-		url = mainUrl;
-
+		let data = hash.data || {};
+		let [ , query ] = url.split('?');
 		if (query && query.length) {
 			const params = query.split('&');
 			params.forEach(item => {
 				const [ key, value ] = item.split('=');
-				data[key] = value;
+				this.addQueryStringPair(data, key, value);
 			});
 		}
 		return data;
+	},
+
+	addQueryStringPair(params, key, value) {
+		if (/\[.+\]/.test(key)) { // parse type: `key[subkey]=value`
+			let [ normalizeKey, subKey ] = key.split('[');
+			subKey = subKey.split(']').join('');
+			let obj = get(params, normalizeKey) || {};
+
+			// NOTE:
+			// for keys formatted like `key[subkey][]=value`
+			// the key will be parsed correctly in that
+			// at this part of the code we will have `subkey[]=value`
+			// therefore recursively calling addQueryStringPair will parse
+			// this in the following `else if` statment
+			this.addQueryStringPair(obj, subKey, value);
+
+			// after recursively calling addQueryStringPair
+			// then the new obj can be added to the original params
+			set(params, normalizeKey, obj);
+		} else if (/\[\]$/.test(key)) { // parse type: `key[]=value`
+			let normalizeKey = key.substring(key.length - 2, 0);
+			let arr = get(params, normalizeKey) || [];
+			arr.push(value);
+			this.addQueryStringPair(params, normalizeKey, arr);
+		} else {
+			// normal key pair just add to params
+			set(params, key, value);
+		}
 	},
 
 	/**
