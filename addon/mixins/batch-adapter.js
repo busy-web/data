@@ -5,6 +5,7 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import { Assert } from 'busy-utils';
+import RPCAdapterMixin from './rpc-adapter';
 
 const { get, set, isNone, merge, RSVP, run, observer } = Ember;
 
@@ -15,7 +16,7 @@ const { get, set, isNone, merge, RSVP, run, observer } = Ember;
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Ember.Mixin.create(RPCAdapterMixin, {
 	/**
 	 * max request size for the batch
 	 *
