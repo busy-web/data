@@ -93,8 +93,10 @@ export default Ember.Mixin.create(RPCAdapterMixin, {
 	isBatchEnabled: true,
 
 	init() {
-		this._super();
+		this.__tries = 0;
 		this._requestStore = RequestStore.create({});
+
+		this._super();
 	},
 
 	_pushQueue(hash) {
@@ -133,6 +135,7 @@ export default Ember.Mixin.create(RPCAdapterMixin, {
 			let query = request.data || {};
 			let [ url, queryString ] = request.url.split('?');
 
+			//console.log('query', url, queryString);
 			merge(query, Query.parse(queryString));
 
 			hash.__batchRequest = { store, url, modelName, requestType, query };
@@ -154,28 +157,46 @@ export default Ember.Mixin.create(RPCAdapterMixin, {
 	},
 
 	_flushPending() {
-		if (get(this, '_requestStore.size') > 0) {
-			const { requests, responses } = this._requestStore.flushPending();
-			this.rpcRequest(this.store, 'batch', 'batch-rest', { requests }).then(batch => {
-				const results = get(batch, 'data.results');
-				if (batch.success && results) {
-					Object.keys(results).forEach(key => {
-						const resp = results[key];
-						const dispatchers = responses[key];
-						let status = resp.statusCode;
-						let statusCode = resp.status;
-
-						delete resp.status;
-						delete resp.statusCode;
-
-						dispatchers.forEach(item => {
-							run(null, get(item, 'hash.success'), resp, status, { status, statusCode, getAllResponseHeaders: () => {}});
-						});
-					});
-				}
-			});
-		//} else {
-		//	run.later(null, () => this._flushPending(), 10);
+		if (get(this, '_requestStore.size') > 2 || this.__tries > 3) {
+			this.__tries = 0;
+			if (get(this, '_requestStore.size') === 1) {
+				this._sendCall();
+			} else {
+				this._sendBatch();
+			}
+		} else {
+			this.__tries = this.__tries + 1;
+			run.next(this, this._flushPending);
 		}
 	},
+
+	_sendCall() {
+		const { responses } = this._requestStore.flushPending();
+		const key = Object.keys(responses)[0];
+		const resp = responses[key][0];
+
+		Ember.$.ajax(resp.hash);
+	},
+
+	_sendBatch() {
+		const { requests, responses } = this._requestStore.flushPending();
+		this.rpcRequest(this.store, 'batch', 'batch-rest', { requests }).then(batch => {
+			const results = get(batch, 'data.results');
+			if (batch.success && results) {
+				Object.keys(results).forEach(key => {
+					const resp = results[key];
+					const dispatchers = responses[key];
+					let status = resp.statusCode;
+					let statusCode = resp.status;
+
+					delete resp.status;
+					delete resp.statusCode;
+
+					dispatchers.forEach(item => {
+						run(null, get(item, 'hash.success'), resp, status, { status, statusCode, getAllResponseHeaders: () => {}});
+					});
+				});
+			}
+		});
+	}
 });

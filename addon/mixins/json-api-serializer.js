@@ -284,7 +284,7 @@ export default Ember.Mixin.create({
 				// create data object
 				let link = '';
 				if (!Ember.isNone(opts.options.query)) {
-					const queryParams = opts.options.query;
+					const queryParams = Ember.merge({}, opts.options.query);
 					if (this.validateQuery(json, queryParams)) {
 						link += query.stringify(queryParams);
 
@@ -322,13 +322,18 @@ export default Ember.Mixin.create({
 		let isvalid = true;
 		Object.keys(query).forEach(key => {
 			let value = Ember.get(query, key);
-			if (/^self/.test(value)) {
-				value = this.keyForAttribute(value.replace(/^self\./, ''));
-				value = Ember.get(json, value);
-				if (value !== undefined) {
-					Ember.set(query, key, value);
-				} else {
-					isvalid = false;
+			if (!Ember.isNone(value) && !Ember.isArray(value) && typeof value === 'object') {
+				this.validateQuery(json, value);
+				Ember.set(query, key, value);
+			} else {
+				if (/^self/.test(value)) {
+					value = this.keyForAttribute(value.replace(/^self\./, ''));
+					value = Ember.get(json, value);
+					if (value !== undefined) {
+						Ember.set(query, key, value);
+					} else {
+						isvalid = false;
+					}
 				}
 			}
 		});
