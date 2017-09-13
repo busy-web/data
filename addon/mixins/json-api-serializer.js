@@ -4,6 +4,7 @@
  */
 import Ember from 'ember';
 import { UUID, Assert } from 'busy-utils';
+import query from 'busy-data/utils/query';
 
 /***/
 const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord', 'findBelongsTo'];
@@ -283,8 +284,9 @@ export default Ember.Mixin.create({
 				// create data object
 				let link = '';
 				if (!Ember.isNone(opts.options.query)) {
-					if (this.validateQuery(json, opts.options.query)) {
-						link += this.buildQueryParams(json, opts.options.query);
+					const queryParams = Ember.merge({}, opts.options.query);
+					if (this.validateQuery(json, queryParams)) {
+						link += query.stringify(queryParams);
 
 						if (opts.kind === 'belongsTo') {
 							link += `&page_size=1`;
@@ -299,7 +301,7 @@ export default Ember.Mixin.create({
 				}
 
 				if (!Ember.isEmpty(link)) {
-					link = link.replace(/^&/, '?');
+					link = '?' + link.replace(/^&/, '');
 					relationship.links = { related: `/${opts.type}${link}` };
 				} else {
 					if (opts.kind === 'belongsTo') {
@@ -320,40 +322,22 @@ export default Ember.Mixin.create({
 		let isvalid = true;
 		Object.keys(query).forEach(key => {
 			let value = Ember.get(query, key);
-			if (/^self/.test(value)) {
-				value = this.keyForAttribute(value.replace(/^self\./, ''));
-				value = Ember.get(json, value);
-				if (Ember.isNone(value)) {
-					isvalid = false;
-				}
-			}
-		});
-		return isvalid;
-	},
-
-	buildQueryParams(json, query={}, str='') {
-		let link = '';
-		Object.keys(query).forEach(key => {
-			let value = Ember.get(query, key);
-
-			if (!Ember.isEmpty(str)) {
-				key = `${str}[${key}]`;
-			}
-
-			if (Ember.isArray(value)) {
-				value.forEach(val => link += `&${key}[]=${val}`);
-			} else if (!Ember.isNone(value) && typeof value === 'object') {
-				link += this.buildQueryParams(json, value, key);
+			if (!Ember.isNone(value) && !Ember.isArray(value) && typeof value === 'object') {
+				this.validateQuery(json, value);
+				Ember.set(query, key, value);
 			} else {
 				if (/^self/.test(value)) {
 					value = this.keyForAttribute(value.replace(/^self\./, ''));
 					value = Ember.get(json, value);
+					if (value !== undefined) {
+						Ember.set(query, key, value);
+					} else {
+						isvalid = false;
+					}
 				}
-
-				link += `&${key}=${value}`;
 			}
 		});
-		return link;
+		return isvalid;
 	},
 
 	getModelReturnType(store, primaryModelClass, attr) {

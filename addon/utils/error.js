@@ -1,6 +1,7 @@
 
 import Ember from 'ember';
 
+const { isNone, isEmpty } = Ember;
 const _error = Ember.Object.extend();
 
 _error.reopenClass({
@@ -18,15 +19,15 @@ _error.reopenClass({
 	},
 
 	parseAdapterErrors(type, status, codes, details) {
-		codes = Ember.isNone(codes) ? [] : codes;
-		details = Ember.isNone(details) ? [] : details;
+		codes = isNone(codes) ? [] : codes;
+		details = isNone(details) ? [] : details;
 
 		let errs = [];
-		if (!Ember.isEmpty(codes)) {
+		if (!isEmpty(codes)) {
 			codes.forEach((code, idx) => {
 				errs.push(this.normalizeAdapterError(type, status, code, details[idx]));
 			});
-		} else if (!Ember.isEmpty(details)) {
+		} else if (!isEmpty(details)) {
 			codes.forEach((code, idx) => {
 				errs.push(this.normalizeAdapterError(type, status, code, details[idx]));
 			});

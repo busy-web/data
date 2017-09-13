@@ -6,6 +6,9 @@ import Ember from 'ember';
 import DS from 'ember-data';
 import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
 import _error from 'busy-data/utils/error';
+import query from 'busy-data/utils/query';
+
+const { isNone, RSVP, merge, String, run, FEATURES: { isEnabled }, get, set, getWithDefault } = Ember;
 
 /**
  * @class
@@ -29,7 +32,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	coalesceFindRequests: true,
 
 	pathForType(type) {
-		return Ember.String.dasherize(type);
+		return String.dasherize(type);
 	},
 
 	version: 1,
@@ -37,51 +40,31 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 
 	urlForRequest(params) {
 		let url = this._super(params);
-
-		// split the params from the url
-		const [ host, query] = url.split('?');
-
-		// add url parms like version or debug
-		url = this.addUrlParams(host);
-
-		// put the params back on the url string but first check
-		// to see if the start `?` query params symbol is already there.
-		if (!Ember.isEmpty(query)) {
-			if (!/\?/.test(url)) {
-				url = url + '?' + query;
-			} else {
-				url = url + '&' + query;
-			}
-		}
-
-		return url;
+		let type = this.methodForRequest(params);
+		return this._addUrlParams(url, type);
 	},
+
+	normalizeErrorResponse(status, headers, payload) {
+		const title = `Api Error: ${headers.method} - ${headers.url}`;
+    if (payload && typeof payload === 'object') {
+			return _error.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
+    } else {
+      return [
+        {
+          title,
+          status: `${status}`,
+          detail: `${payload}`
+        }
+      ];
+    }
+  },
 
 	handleResponse(status, headers, payload, requestData) {
-		if (!requestData.isBatch) {
-			payload.__type = "JSONAPIAdapter";
-		}
-
-		if (status === 429) {
-			payload.errors = _error.normalizeAdapterError('BATCH API', status, 429, 'Api rate limit reached');
-			let errors = this.normalizeErrorResponse(status, headers, payload);
-			let detailedMessage = this.generatedDetailedMessage(status, headers, payload, requestData);
-			return new DS.AdapterError(errors, detailedMessage);
-		}
+		headers = typeof headers === 'object' && headers ? headers : {};
+		set(headers, 'method', get(requestData, 'method'));
+		set(headers, 'url', get(requestData, 'url'));
 
 		return this._super(status, headers, payload, requestData);
-	},
-
-	payloadCodes(payload) {
-		return Ember.get(payload, 'code');
-	},
-
-	payloadDetails(payload) {
-		return Ember.get(payload, 'details');
-	},
-
-	parseErrors(payload, status) {
-		payload.errors = _error.parseAdapterErrors(payload.__type, status, this.payloadCodes(payload), this.payloadDetails(payload));
 	},
 
 	_requestFor(params) {
@@ -92,14 +75,14 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 
 	_requestToJQueryAjaxHash(request) {
 		const hash = this._super({ url: request.url, method: "GET", headers: request.headers, data: request.data }) || {};
-		hash.type = request.method;
-		hash.data = hash.data || {};
+		set(hash, 'type', get(request, 'method'));
+		set(hash, 'data', getWithDefault(hash, 'data', {}));
 
-		if (hash.data && hash.data.filter) {
-			this.changeFilter(hash, request.requestType);
+		if (!isNone(get(hash, 'data.filter'))) {
+			this.changeFilter(get(hash, 'data'));
 		}
 
-		this.addDefaultParams(hash, request.requestType);
+		this.addDefaultParams(get(hash, 'data'), get(hash, 'type'));
 
 		return hash;
 	},
@@ -117,42 +100,105 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	},
 
 	_hasCustomizedAjax() {
-		return false;
-	},
-
-	addDefaultParams(/*hash*/) {
-		return;
-	},
-
-	changeFilter(hash) {
-		const filterKey = this.get('hasManyFilterKey');
-		hash.data[filterKey] = {};
-		for (let i in hash.data.filter) {
-			if (hash.data.filter.hasOwnProperty(i)) {
-				hash.data[filterKey][i] = hash.data.filter[i].split(',');
-			}
+		if (isEnabled('ds-improved-ajax')) {
+			return false;
+		} else {
+			this._super(...arguments);
 		}
-		delete hash.data.filter;
+	},
+
+	changeFilter(data) {
+		const __filter = get(data, 'filter');
+		if (!isNone(__filter)) {
+			const filter = {};
+			Object.keys(__filter).forEach(key => {
+				set(filter, key, get(__filter, key).split(','));
+			});
+			delete data.filter;
+			set(data, getWithDefault(this, 'hasManyFilterKey', 'filter'), filter);
+		}
 	},
 
 	_makeRequest(request) {
-		const _req = Ember.merge({}, request);
+		const _req = merge({}, request);
 		return this._super(_req).catch(err => {
 			if (err.errors && err.errors.status === 429) {
 				return this._waitPromise(300).then(() => {
 					return this._makeRequest(request);
 				});
 			} else {
-				return Ember.RSVP.reject(err);
+				return RSVP.reject(err);
 			}
 		});
 	},
 
 	_waitPromise(time=1) {
-		return new Ember.RSVP.Promise(resolve => {
-			Ember.run.later(() => {
-				Ember.run(null, resolve, null);
+		return new RSVP.Promise(resolve => {
+			run.later(() => {
+				run(null, resolve, null);
 			}, time);
 		});
 	},
+
+	ajaxOptions(url, type, options) {
+		let _type = type === 'PUT' ? 'PATCH' : type;
+
+		// set url params
+		url = this._addUrlParams(url, _type);
+
+		// make sure options is properly formatted
+		options = options || {};
+		set(options, 'data', getWithDefault(options, 'data', {}));
+
+		// check for a data filter
+		if (!isNone(get(options, 'data.filter'))) {
+			this.changeFilter(options.data);
+		}
+
+		// add default params
+		this.addDefaultParams(options.data, _type);
+
+		// cal super to get the ajax hash
+		const hash = this._super(url, type, options);
+
+		// set the new hash type
+		set(hash, 'type', _type);
+
+		// if hash is post then adjust the data for bad apis
+		if (get(hash, 'contentType') !== false && (get(hash, 'type') === 'POST' || get(hash, 'type') === 'PATCH')) {
+			set(hash, 'contentType', 'application/x-www-form-urlencoded; charset=UTF-8');
+      set(hash, 'data', JSON.parse(get(hash, 'data') || {}));
+		}
+
+		// return the hash
+		return hash;
+	},
+
+	/**
+	 * passes the data object for addition default params
+	 * to be added
+	 *
+	 * @method addDefaultParams
+	 * @params data {object} add params to object
+	 * @returns {void}
+	 */
+	addDefaultParams() { },
+
+	/**
+	 * passes url params object for additional default url params
+	 * to be added
+	 *
+	 * @method addUrlParams
+	 * @params params {object} add params to object
+	 * @returns {void}
+	 */
+	addUrlParams() {},
+
+	_addUrlParams(url, type) {
+		let [ host, params ] = url.split('?');
+		params = query.parse(params);
+		this.addUrlParams(params, type);
+		url =	host + '?' + query.stringify(params);
+		return url;
+	}
 });

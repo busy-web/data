@@ -5,6 +5,8 @@
 import Ember from 'ember';
 import { Assert } from 'busy-utils';
 
+const { isNone, get, set, merge } = Ember;
+
 /**
  * `BusyData/Mixins/ImageAdapter`
  *
@@ -14,10 +16,26 @@ import { Assert } from 'busy-utils';
  */
 export default Ember.Mixin.create({
 
+	ajaxOptions(url, type, options) {
+		options = options || {};
+
+		const data = merge({}, get(options, 'data'));
+		const isFile = !isNone(get(options, 'data._fileObject'));
+		const hash = this._super(...arguments);
+
+		if (isFile) {
+			set(hash, 'data', data);
+			this.setupUpload(hash);
+		}
+
+		return hash;
+	},
+
 	_requestToJQueryAjaxHash(request) {
-		let isFile = false;
-		if (request.data && typeof request.data === 'object' && request.data._fileObject) {
-			isFile = true;
+		request = request || {};
+
+		const isFile = !isNone(get(request, 'data._fileObject'));
+		if (isFile) {
 			request.headers.Accept = 'application/json; charset=utf-8';
 		}
 
@@ -46,7 +64,7 @@ export default Ember.Mixin.create({
 		// that was created in the serializer.serializeIntoHash
 		// The fileObject has event listeners for uploadStart,
 		// uploadProgress and uploadComplete
-		const fileObject = hash.data._fileObject;
+		const fileObject = get(hash, 'data._fileObject');
 		fileObject.uploadStart();
 
 		// set the ajax complete function to trigger
@@ -60,27 +78,27 @@ export default Ember.Mixin.create({
 		delete hash.data._fileObject;
 
 		// convert the hash.data to a formData object
-		hash.data = this.convertDataForUpload(hash.data);
+		set(hash, 'data', this.convertDataForUpload(hash.data));
 
 		// set contentType and processData to false
 		// for file uploads
-		hash.contentType = false;
-		hash.processData = false;
+		set(hash, 'contentType', false);
+		set(hash, 'processData', false);
 
 		// dont allow batch call
-		hash.disableBatch = true;
+		set(hash, 'disableBatch', true);
 
 		// set the xhr function to report
 		// upload progress
-		hash.xhr = () => {
+		set(hash, 'xhr', () => {
 			var xhr = Ember.$.ajaxSettings.xhr();
-			xhr.upload.onprogress = (e) => {
+			set(xhr, 'upload.onprogress', (e) => {
 				Ember.run.later(this, function() {
 					fileObject.uploadProgress(e);
 				}, 100);
-			};
+			});
 			return xhr;
-		};
+		});
 	},
 
 	/**

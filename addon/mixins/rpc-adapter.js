@@ -4,6 +4,8 @@
 import Ember from 'ember';
 import { Assert } from 'busy-utils';
 
+const { isNone, get } = Ember;
+
 /**
  * `BusyData/Mixins/RpcAdapter`
  *
@@ -22,7 +24,12 @@ export default Ember.Mixin.create({
 		if (type.proto()._isRPC) {
 			return this.queryRPC(store, type, query);
 		} else {
-			return this._super(...arguments);
+			return this._super(...arguments).then(data => {
+				if(!Ember.isArray(data.data)) {
+					data.data = Ember.A([data.data]);
+				}
+				return data;
+			});
 		}
 	},
 
@@ -40,45 +47,58 @@ export default Ember.Mixin.create({
 		Assert.funcNumArgs(arguments, 3, true);
 		Assert.isObject(query);
 
-		if (this.sortQueryParams) {
-			query = this.sortQueryParams(query);
+		let promise;
+		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
+			const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
+			promise = this._makeRequest(request);
+		} else {
+			let _requestType = 'rpc'
+      let url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
+
+			query = this.dataForRequest({ type, _requestType, query });
+
+      if (this.sortQueryParams) {
+        query = this.sortQueryParams(query);
+      }
+
+      promise = this.ajax(url, 'POST', { _requestType, data: query });
 		}
 
-		//return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
-		const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
-		return this._makeRequest(request).then(data => {
-			if(!Ember.isArray(data.data)) {
-				data.data = Ember.A([data.data]);
-			}
-			return data;
-		});
+		return promise;
 	},
 
-	rpcRequest(store, modelName, method, query, host) {
+	rpcRequest(store, modelName, method, query={}, host) {
 		Assert.funcNumArgs(arguments, 5);
+		Assert.isString(modelName);
+		Assert.isString(method);
 		Assert.isObject(query);
-
-		if (this.sortQueryParams) {
-			query = this.sortQueryParams(query);
-		}
 
 		const type = Ember.Object.extend({
 			_methodName: method,
 			_clientName: modelName,
 			_hostName: host
-		});
+		}).reopenClass({ modelName });
 
-		type.reopenClass({ modelName });
+		return this.queryRPC(store, type, query);
+	},
 
-		//return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
-		const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
-		return this._makeRequest(request);
+	ajaxOptions(url, type, options) {
+		const isRPC = get(options || {}, '_requestType') === 'rpc';
+		const hash = this._super(...arguments);
+
+		if (isRPC) {
+			hash.data = JSON.stringify(hash.data);
+      hash.contentType = 'application/json; charset=utf-8';
+			hash.disableBatch = true;
+		}
+
+		return hash;
 	},
 
 	dataForRequest(params) {
 		if (params._requestType === 'rpc') {
 			const method = params.type.proto()._methodName;
-			Assert.test('The rpc model has no _methodName to call.', !Ember.isNone(method));
+			Assert.test('The rpc model has no _methodName to call.', !isNone(method));
 			return {
 				method,
 				params: params.query,
@@ -114,8 +134,8 @@ export default Ember.Mixin.create({
 			}
 
 			const host = params.type.proto()._hostName;
-			if (!Ember.isEmpty(host) && this.get('host') !== host) {
-				const regx = new RegExp(this.get('host'));
+			if (!Ember.isEmpty(host) && get(this, 'host') !== host) {
+				const regx = new RegExp(get(this, 'host'));
 				url = url.replace(regx, host);
 			}
 		}
@@ -141,5 +161,12 @@ export default Ember.Mixin.create({
 		}
 
 		return hash;
+	},
+
+  handleResponse(status, headers, payload, requestData) {
+		if (payload && typeof payload === 'object' && get(payload, 'jsonrpc')) {
+			payload = get(payload, 'result');
+		}
+		return this._super(status, headers, payload, requestData);
 	}
 });
