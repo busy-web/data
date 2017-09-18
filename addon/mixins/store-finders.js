@@ -27,35 +27,35 @@ const {
 	PromiseArray
 } = DS;
 
-const DebugHandler = Ember.Object.extend({
-	stack: null,
-
-	log(...args) {
-		if (isNone(get(this, 'stack'))) {
-			set(this, 'stack', []);
-		}
-
-		args = args.map(item => {
-			if (!isNone(item) && typeof item === 'object') {
-				if (isArray(item) && !item.content) {
-					return item.slice(0);
-				}
-				return merge({}, item);
-			}
-			return item;
-		});
-
-		get(this, 'stack').push(args);
-	},
-
-	post() {
-		window.console.log('\nDEBUG HANDLER', get(this, 'id'), '------------------');
-		get(this, 'stack').forEach((args, idx) => {
-			window.console.log(idx + 1, ...args);
-		});
-		window.console.log('END DEBUG HANDLER', get(this, 'id'), '---------------\n\n');
-	}
-});
+//const DebugHandler = Ember.Object.extend({
+//	stack: null,
+//
+//	log(...args) {
+//		if (isNone(get(this, 'stack'))) {
+//			set(this, 'stack', []);
+//		}
+//
+//		args = args.map(item => {
+//			if (!isNone(item) && typeof item === 'object') {
+//				if (isArray(item) && !item.content) {
+//					return item.slice(0);
+//				}
+//				return merge({}, item);
+//			}
+//			return item;
+//		});
+//
+//		get(this, 'stack').push(args);
+//	},
+//
+//	post() {
+//		window.console.log('\nDEBUG HANDLER', get(this, 'id'), '------------------');
+//		get(this, 'stack').forEach((args, idx) => {
+//			window.console.log(idx + 1, ...args);
+//		});
+//		window.console.log('END DEBUG HANDLER', get(this, 'id'), '---------------\n\n');
+//	}
+//});
 
 /**
  * `StoreFinders`
@@ -155,9 +155,9 @@ export default Mixin.create({
 	 */
 	_findRecords(modelName, query, array) {
     array = array || this.recordArrayManager.createAdapterPopulatedRecordArray(modelName, query);
-		array._update = function() {
-			return _findRecords(get(this, 'modelName'), get(this, 'query'), this);
-		};
+		set(array, '_update', () => {
+			return this._findRecords(get(array, 'modelName'), get(array, 'query'), array);
+		});
 
 		let adapter = this.adapterFor(modelName);
 
@@ -397,24 +397,24 @@ function nextParams(model, query, lastQuery) {
 }
 
 
-function _findWhereIn(store, modelType, queryList, query) {
-	if (queryList.length === 0) {
-		return RSVP.resolve([]);
-	}
-
-	// get next query params
-	const params = queryList.shift();
-
-	// merge query params with params
-	merge(params, query);
-
-	// find all models
-	return store.findAll(modelType, params).then((model) => {
-		return _findWhereIn(store, modelType, queryList, query).then((moreModels) => {
-			if (isObject(moreModels) && !isEmpty(get(moreModels, 'content'))) {
-				return model.pushObjects(get(moreModels, 'content'));
-			}
-			return model;
-		});
-	});
-}
+//function _findWhereIn(store, modelType, queryList, query) {
+//	if (queryList.length === 0) {
+//		return RSVP.resolve([]);
+//	}
+//
+//	// get next query params
+//	const params = queryList.shift();
+//
+//	// merge query params with params
+//	merge(params, query);
+//
+//	// find all models
+//	return store.findAll(modelType, params).then((model) => {
+//		return _findWhereIn(store, modelType, queryList, query).then((moreModels) => {
+//			if (isObject(moreModels) && !isEmpty(get(moreModels, 'content'))) {
+//				return model.pushObjects(get(moreModels, 'content'));
+//			}
+//			return model;
+//		});
+//	});
+//}

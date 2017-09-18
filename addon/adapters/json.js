@@ -8,7 +8,7 @@ import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
 import _error from 'busy-data/utils/error';
 import query from 'busy-data/utils/query';
 
-const { isNone, RSVP, merge, String, run, FEATURES: { isEnabled }, get, set, getWithDefault } = Ember;
+const { isNone, isArray, RSVP, merge, String, run, FEATURES: { isEnabled }, get, set, getWithDefault } = Ember;
 
 /**
  * @class
@@ -119,16 +119,28 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 		}
 	},
 
-	_makeRequest(request) {
+	_makeRequest(request, tries=0) {
 		const _req = merge({}, request);
 		return this._super(_req).catch(err => {
-			if (err.errors && err.errors.status === 429) {
-				return this._waitPromise(300).then(() => {
-					return this._makeRequest(request);
-				});
-			} else {
-				return RSVP.reject(err);
+			if (!isNone(get(err, 'errors'))) {
+				let error = get(err, 'errors');
+				error = isArray(error) ? error[0] : error;
+
+				let status = parseInt(get(error, 'status'), 10);
+				if (status === 429 && tries < 5) {
+					return this._waitPromise(300).then(() => {
+						return this._makeRequest(request, tries+1);
+					});
+				} else if (status === 500 && tries < 5) {
+					let detail = get(error, 'detail');
+					if (/failed to obtain lock with key/.test(detail)) {
+						return this._waitPromise(500).then(() => {
+							return this._makeRequest(request, tries+1);
+						});
+					}
+				}
 			}
+			return RSVP.reject(err);
 		});
 	},
 
