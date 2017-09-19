@@ -127,10 +127,10 @@ export default Ember.Mixin.create({
 		Assert.isString(url);
 
 		// strip http and query params
-		let name = url.replace(/^https?:\/\/([^\?]*)[\s\S]*$/, '$1');
+		let name = url.replace(/^https?:\/\/([^?]*)[\s\S]*$/, '$1');
 
 		// strip everything before the last slash
-		return name.replace(/[^\/]*\/([\s\S]*)/, '$1');
+		return name.replace(/[^/]*\/([\s\S]*)/, '$1');
 	},
 
 	getData(hash={}) {
