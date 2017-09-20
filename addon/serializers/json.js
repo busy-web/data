@@ -2,7 +2,10 @@
  * @module Serializers
  *
  */
-import Ember from 'ember';
+import { get, getWithDefault } from '@ember/object';
+
+import { underscore } from '@ember/string';
+import { isNone } from '@ember/utils';
 import DS from 'ember-data';
 import JSONAPIMixin from 'busy-data/mixins/json-api-serializer';
 import { UUID } from 'busy-utils';
@@ -31,11 +34,11 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 				payloadKey = this.keyForAttribute(key, 'serialize');
 			}
 
-			if (key === 'createdOn' && Ember.isNone(value)) {
+			if (key === 'createdOn' && isNone(value)) {
 				value = (new Date()).valueOf()/1000;
 			}
 
-			if (!Ember.isNone(value) && value.hasOwnProperty('file') && (value.file instanceof File || value.file instanceof Blob)) {
+			if (!isNone(value) && value.hasOwnProperty('file') && (value.file instanceof File || value.file instanceof Blob)) {
 				json._fileObject = value;
 				value = value.get('file');
 
@@ -43,7 +46,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 				snapshot.record.file = null;
 			}
 
-			if (!Ember.isNone(value)) {
+			if (!isNone(value)) {
 				json[payloadKey] = value;
 			}
 		}
@@ -55,7 +58,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 	keyForAttribute(key) {
 		// look for underscored api properties
-		return Ember.String.underscore(key);
+		return underscore(key);
 	},
 
 	modelNameFromPayloadKey(key) {
@@ -64,7 +67,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 	getDataFromResponse(payload) {
 		// get the data array from the payload
-		return Ember.get(payload, 'data');
+		return get(payload, 'data');
 	},
 
 	getMetaFromResponse(payload) {
@@ -83,15 +86,15 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 	serialize(snapshot, options) {
 		const data = {};
-		const isNew = Ember.getWithDefault(snapshot, 'record.isNew', false);
+		const isNew = getWithDefault(snapshot, 'record.isNew', false);
 
 		if (options && options.includeId) {
 			if (snapshot.id) {
-				data[Ember.get(this, 'primaryKey')] = snapshot.id;
+				data[get(this, 'primaryKey')] = snapshot.id;
 			}
 		}
 
-		const changeAttrs = Object.keys(Ember.getWithDefault(snapshot, '_internalModel._inFlightAttributes', {}));
+		const changeAttrs = Object.keys(getWithDefault(snapshot, '_internalModel._inFlightAttributes', {}));
 		snapshot.eachAttribute((key, attribute) => {
 			if (isNew || changeAttrs.indexOf(key) !== -1) {
 				this.serializeAttribute(snapshot, data, key, attribute);
@@ -117,7 +120,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 		for(let key in data) {
 			if (data.hasOwnProperty(key)) {
-				if (!Ember.isNone(data[key])) {
+				if (!isNone(data[key])) {
 					hash[key] = data[key];
 				}
 			}

@@ -2,7 +2,7 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
+import Mixin from '@ember/object/mixin';
 import { Assert } from 'busy-utils';
 
 /**
@@ -12,7 +12,7 @@ import { Assert } from 'busy-utils';
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * Simple rpc request method that does not use the ember-data
 	 * model layer.

@@ -1,10 +1,12 @@
 /**
  * @module Mixins
  */
+import { isArray, A } from '@ember/array';
+import Mixin from '@ember/object/mixin';
+import { isNone, isEmpty } from '@ember/utils';
+import EmberObject, { get } from '@ember/object';
 import Ember from 'ember';
 import { Assert } from 'busy-utils';
-
-const { isNone, get } = Ember;
 
 /**
  * `BusyData/Mixins/RpcAdapter`
@@ -13,7 +15,7 @@ const { isNone, get } = Ember;
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * Override for query to redirect rcp queries
 	 *
@@ -25,8 +27,8 @@ export default Ember.Mixin.create({
 			return this.queryRPC(store, type, query);
 		} else {
 			return this._super(...arguments).then(data => {
-				if(!Ember.isArray(data.data)) {
-					data.data = Ember.A([data.data]);
+				if(!isArray(data.data)) {
+					data.data = A([data.data]);
 				}
 				return data;
 			});
@@ -73,7 +75,7 @@ export default Ember.Mixin.create({
 		Assert.isString(method);
 		Assert.isObject(query);
 
-		const type = Ember.Object.extend({
+		const type = EmberObject.extend({
 			_methodName: method,
 			_clientName: modelName,
 			_hostName: host
@@ -134,7 +136,7 @@ export default Ember.Mixin.create({
 			}
 
 			const host = params.type.proto()._hostName;
-			if (!Ember.isEmpty(host) && get(this, 'host') !== host) {
+			if (!isEmpty(host) && get(this, 'host') !== host) {
 				const regx = new RegExp(get(this, 'host'));
 				url = url.replace(regx, host);
 			}

@@ -2,10 +2,14 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
-import { Assert } from 'busy-utils';
+import { later } from '@ember/runloop';
 
-const { isNone, get, set, merge } = Ember;
+import $ from 'jquery';
+import Mixin from '@ember/object/mixin';
+import { isNone } from '@ember/utils';
+import { set, get } from '@ember/object';
+import { merge } from '@ember/polyfills';
+import { Assert } from 'busy-utils';
 
 /**
  * `BusyData/Mixins/ImageAdapter`
@@ -14,7 +18,7 @@ const { isNone, get, set, merge } = Ember;
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 
 	ajaxOptions(url, type, options) {
 		options = options || {};
@@ -91,9 +95,9 @@ export default Ember.Mixin.create({
 		// set the xhr function to report
 		// upload progress
 		set(hash, 'xhr', () => {
-			var xhr = Ember.$.ajaxSettings.xhr();
+			var xhr = $.ajaxSettings.xhr();
 			set(xhr, 'upload.onprogress', (e) => {
-				Ember.run.later(this, function() {
+				later(this, function() {
 					fileObject.uploadProgress(e);
 				}, 100);
 			});
@@ -113,7 +117,7 @@ export default Ember.Mixin.create({
 		Assert.isObject(data);
 
 		const formData = new FormData();
-		Ember.$.each(data, (key, val) => {
+		$.each(data, (key, val) => {
 			if (data.hasOwnProperty(key)) {
 				if (key !== 'file_url' && key !== 'file_thumb_url' && key !== 'image_url' && key !== 'image_thumb_url') {
 					formData.append(key, val);

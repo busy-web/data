@@ -2,11 +2,18 @@
  * @module mixins
  *
  */
-import Ember from 'ember';
+import $ from 'jquery';
+
+import EmberError from '@ember/error';
+import { A } from '@ember/array';
+import Mixin from '@ember/object/mixin';
+import { isNone } from '@ember/utils';
+import { merge } from '@ember/polyfills';
+import RSVP from 'rsvp';
+import { run } from '@ember/runloop';
+import { observer, set, get } from '@ember/object';
 import DS from 'ember-data';
 import { Assert } from 'busy-utils';
-
-const { get, set, isNone, merge, RSVP, run, observer } = Ember;
 
 /**
  * `BusyData/Mixins/BatchAdapter`
@@ -15,7 +22,7 @@ const { get, set, isNone, merge, RSVP, run, observer } = Ember;
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * max request size for the batch
 	 *
@@ -65,7 +72,7 @@ export default Ember.Mixin.create({
 
 	init() {
 		// setup the queue
-		this.set('queue', Ember.A());
+		this.set('queue', A());
 		this._super(...arguments);
 	},
 
@@ -83,7 +90,7 @@ export default Ember.Mixin.create({
 		if ((expired && this.get('queue.length') > 0) || (this.get('queue.length') >= this.get('maxBatchSize'))) {
 			// get the queue and then clear the queue
 			const batch = this.get('queue');
-			this.set('queue', Ember.A());
+			this.set('queue', A());
 
 			// send current batch results
 			this.sendBatch(batch);
@@ -315,11 +322,11 @@ export default Ember.Mixin.create({
 		hash.error = function(jqXHR, textStatus, errorThrown) {
 			let responseData = { textStatus, errorThrown };
       let error = ajaxError(adapter, jqXHR, requestData, responseData);
-			Ember.Error(error);
+			EmberError(error);
 		};
 
 		// send ajax call
-		Ember.$.ajax(hash);
+		$.ajax(hash);
 	},
 
 	handleResponse(status, headers, payload, requestData) {

@@ -2,15 +2,20 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
+import { reject } from 'rsvp';
+
+import $ from 'jquery';
+import Mixin from '@ember/object/mixin';
+import { alias } from '@ember/object/computed';
+import { isEmpty } from '@ember/utils';
+import EmberObject, { set, get } from '@ember/object';
+import { run } from '@ember/runloop';
+import { merge } from '@ember/polyfills';
 import { Assert } from 'busy-utils';
 import RPCAdapterMixin from './rpc-adapter';
 import Query from 'busy-data/utils/query';
 
-/***/
-const { isEmpty, get, set, run, merge } = Ember;
-
-const RequestStore = Ember.Object.extend({
+const RequestStore = EmberObject.extend({
 	//_maxPageSize: 30,
 	queue: null,
 
@@ -19,7 +24,7 @@ const RequestStore = Ember.Object.extend({
 		set(this, 'queue', []);
 	},
 
-	size: Ember.computed.alias('queue.length'),
+	size: alias('queue.length'),
 
 	addRequest(request) {
 		get(this, 'queue').pushObject(request);
@@ -108,7 +113,7 @@ const RequestStore = Ember.Object.extend({
 /**
  *
  */
-export default Ember.Mixin.create(RPCAdapterMixin, {
+export default Mixin.create(RPCAdapterMixin, {
 	isBatchEnabled: true,
 
 	init() {
@@ -162,7 +167,7 @@ export default Ember.Mixin.create(RPCAdapterMixin, {
 		const key = Object.keys(responses)[0];
 		const resp = responses[key][0];
 
-		Ember.$.ajax(resp);
+		$.ajax(resp);
 	},
 
 	_sendBatch() {
@@ -200,7 +205,7 @@ export default Ember.Mixin.create(RPCAdapterMixin, {
 					});
 				});
 			} else {
-				return Ember.RSVP.reject(batch);
+				return reject(batch);
 			}
 		});
 	}

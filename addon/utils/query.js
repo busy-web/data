@@ -1,7 +1,7 @@
 
-import Ember from 'ember';
-
-const { get, set, isNone, isArray } = Ember;
+import { set, get } from '@ember/object';
+import { isNone } from '@ember/utils';
+import { isArray } from '@ember/array';
 
 function addQueryStringPair(params, key, value) {
 	if (/\[.+\]/.test(key)) { // parse type: `key[subkey]=value`
@@ -60,7 +60,7 @@ export default {
 	stringify(query) {
 		let queryStr = '';
 		Object.keys(query).forEach(key => {
-			let value = Ember.get(query, key);
+			let value = get(query, key);
 			if (value !== undefined) {
 				if (isArray(value)) {
 					value.forEach(val => queryStr += `&${key}[]=${val}`);

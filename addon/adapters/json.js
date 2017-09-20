@@ -2,13 +2,17 @@
  * @module adapters
  *
  */
+import { isNone } from '@ember/utils';
+import { isArray } from '@ember/array';
+import RSVP from 'rsvp';
+import { merge } from '@ember/polyfills';
+import { run } from '@ember/runloop';
+import { getWithDefault, set, get } from '@ember/object';
 import Ember from 'ember';
 import DS from 'ember-data';
 import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
 import _error from 'busy-data/utils/error';
 import query from 'busy-data/utils/query';
-
-const { isNone, isArray, RSVP, merge, String, run, FEATURES: { isEnabled }, get, set, getWithDefault } = Ember;
 
 /**
  * @class
@@ -32,7 +36,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	coalesceFindRequests: true,
 
 	pathForType(type) {
-		return String.dasherize(type);
+		return Ember.String.dasherize(type);
 	},
 
 	version: 1,
@@ -100,7 +104,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	},
 
 	_hasCustomizedAjax() {
-		if (isEnabled('ds-improved-ajax')) {
+		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
 			return false;
 		} else {
 			this._super(...arguments);

@@ -1,8 +1,7 @@
 
-import Ember from 'ember';
-
-const { isNone, isEmpty } = Ember;
-const _error = Ember.Object.extend();
+import EmberObject from '@ember/object';
+import { isEmpty, isNone } from '@ember/utils';
+const _error = EmberObject.extend();
 
 _error.reopenClass({
 	normalizeAdapterError(title="ERROR", status=0, code=0, detail='') {
