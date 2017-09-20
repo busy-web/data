@@ -3,7 +3,6 @@
  *
  */
 import Mixin from '@ember/object/mixin';
-
 import { assert } from '@ember/debug';
 import { isPresent } from '@ember/utils';
 import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';

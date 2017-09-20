@@ -1,1 +1,1 @@
-export { default } from 'busy-data/authorizers/basic';
+export { default } from '@busybusy/data/authorizers/basic';

@@ -2,10 +2,9 @@
  * @module Authorizors
  *
  */
-import { isEmpty } from '@ember/utils';
-
-import { get } from '@ember/object';
 import BaseAuthorizer from 'ember-simple-auth/authorizers/base';
+import { isEmpty } from '@ember/utils';
+import { get } from '@ember/object';
 
 /**
  * `BusyData/Authorizers/Base`

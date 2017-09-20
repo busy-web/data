@@ -1,11 +1,10 @@
 /**
  * default busy-data import
  */
-import { merge } from '@ember/polyfills';
-
-import { get } from '@ember/object';
 import DS from 'ember-data';
-import RPCModelMixin from './mixins/rpc-model';
+import { merge } from '@ember/polyfills';
+import { get } from '@ember/object';
+import RPCModelMixin from 'data/mixins/rpc-model';
 
 DS.Model.reopen({
 	reloadAll() {

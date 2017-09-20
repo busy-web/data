@@ -1,5 +1,5 @@
 import EmberObject from '@ember/object';
-import SimpleAuthDataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
+import SimpleAuthDataAdapterMixin from '@busybusy/data/mixins/simple-auth-data-adapter';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | simple auth data adapter');

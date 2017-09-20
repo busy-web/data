@@ -1,11 +1,11 @@
 /**
  * @module Mixins
  */
+import Ember from 'ember';
 import { isArray, A } from '@ember/array';
 import Mixin from '@ember/object/mixin';
 import { isNone, isEmpty } from '@ember/utils';
 import EmberObject, { get } from '@ember/object';
-import Ember from 'ember';
 import { Assert } from 'busy-utils';
 
 /**

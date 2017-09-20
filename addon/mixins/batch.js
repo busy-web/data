@@ -3,7 +3,6 @@
  *
  */
 import { reject } from 'rsvp';
-
 import $ from 'jquery';
 import Mixin from '@ember/object/mixin';
 import { alias } from '@ember/object/computed';
@@ -12,8 +11,8 @@ import EmberObject, { set, get } from '@ember/object';
 import { run } from '@ember/runloop';
 import { merge } from '@ember/polyfills';
 import { Assert } from 'busy-utils';
-import RPCAdapterMixin from './rpc-adapter';
-import Query from 'busy-data/utils/query';
+import RPCAdapterMixin from '@busybusy/data/mixins/rpc-adapter';
+import Query from '@busybusy/data/utils/query';
 
 const RequestStore = EmberObject.extend({
 	//_maxPageSize: 30,

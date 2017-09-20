@@ -1,1 +1,1 @@
-export { default } from 'busy-data/adapters/json';
+export { default } from '@busybusy/data/adapters/json';

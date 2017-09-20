@@ -3,13 +3,12 @@
  *
  */
 import $ from 'jquery';
-
-import { inject as service } from '@ember/service';
-import { Promise } from 'rsvp';
-import { set, get } from '@ember/object';
-import { isEmpty } from '@ember/utils';
 import Base from 'ember-simple-auth/authenticators/base';
 import fetch from 'fetch';
+import { Promise } from 'rsvp';
+import { inject as service } from '@ember/service';
+import { set, get } from '@ember/object';
+import { isEmpty } from '@ember/utils';
 
 /**
  * Basic Auth Authenticator

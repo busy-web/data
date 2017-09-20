@@ -3,7 +3,6 @@
  *
  */
 import { later } from '@ember/runloop';
-
 import $ from 'jquery';
 import Mixin from '@ember/object/mixin';
 import { isNone } from '@ember/utils';

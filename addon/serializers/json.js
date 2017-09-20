@@ -2,13 +2,12 @@
  * @module Serializers
  *
  */
+import DS from 'ember-data';
 import { get, getWithDefault } from '@ember/object';
-
 import { underscore } from '@ember/string';
 import { isNone } from '@ember/utils';
-import DS from 'ember-data';
-import JSONAPIMixin from 'busy-data/mixins/json-api-serializer';
 import { UUID } from 'busy-utils';
+import JSONAPIMixin from 'data/mixins/json-api-serializer';
 
 /**
  * `BusyData/Serializers/Json`

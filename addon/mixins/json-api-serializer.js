@@ -3,14 +3,13 @@
  *
  */
 import { isArray } from '@ember/array';
-
 import { merge } from '@ember/polyfills';
 import { underscore, dasherize } from '@ember/string';
 import { isNone, typeOf, isEmpty } from '@ember/utils';
 import { set, get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 import { UUID, Assert } from 'busy-utils';
-import query from 'busy-data/utils/query';
+import query from '@busybusy/data/utils/query';
 
 /***/
 const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord', 'findBelongsTo'];

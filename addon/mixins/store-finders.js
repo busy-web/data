@@ -2,16 +2,15 @@
  * @module store
  *
  */
+import RSVP from 'rsvp';
+import DS from 'ember-data';
+import Mixin from '@ember/object/mixin';
 import { isArray } from '@ember/array';
-
 import { isEmpty, isNone } from '@ember/utils';
 import { merge } from '@ember/polyfills';
 import { getWithDefault, set, get } from '@ember/object';
-import RSVP from 'rsvp';
 import { run } from '@ember/runloop';
 import { runInDebug } from '@ember/debug';
-import Mixin from '@ember/object/mixin';
-import DS from 'ember-data';
 import { Assert } from 'busy-utils';
 
 /***/

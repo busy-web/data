@@ -2,17 +2,19 @@
  * @module adapters
  *
  */
+import RSVP from 'rsvp';
+import Ember from 'ember';
+import DS from 'ember-data';
+
 import { isNone } from '@ember/utils';
 import { isArray } from '@ember/array';
-import RSVP from 'rsvp';
 import { merge } from '@ember/polyfills';
 import { run } from '@ember/runloop';
 import { getWithDefault, set, get } from '@ember/object';
-import Ember from 'ember';
-import DS from 'ember-data';
-import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
-import _error from 'busy-data/utils/error';
-import query from 'busy-data/utils/query';
+
+import DataAdapterMixin from '@busybusy/data/mixins/simple-auth-data-adapter';
+import BusyError from '@busybusy/data/utils/error';
+import Query from '@busybusy/data/utils/query';
 
 /**
  * @class
@@ -51,7 +53,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	normalizeErrorResponse(status, headers, payload) {
 		const title = `Api Error: ${headers.method} - ${headers.url}`;
     if (payload && typeof payload === 'object') {
-			return _error.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
+			return BusyError.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
     } else {
       return [
         {
@@ -212,9 +214,9 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 
 	_addUrlParams(url, type) {
 		let [ host, params ] = url.split('?');
-		params = query.parse(params);
+		params = Query.parse(params);
 		this.addUrlParams(params, type);
-		url =	host + '?' + query.stringify(params);
+		url =	host + '?' + Query.stringify(params);
 		return url;
 	}
 });

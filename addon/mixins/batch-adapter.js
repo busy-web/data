@@ -3,7 +3,6 @@
  *
  */
 import $ from 'jquery';
-
 import EmberError from '@ember/error';
 import { A } from '@ember/array';
 import Mixin from '@ember/object/mixin';
