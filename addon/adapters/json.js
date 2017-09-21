@@ -3,18 +3,17 @@
  *
  */
 import RSVP from 'rsvp';
-import Ember from 'ember';
 import DS from 'ember-data';
-
+import { dasherize } from '@ember/string';
 import { isNone } from '@ember/utils';
 import { isArray } from '@ember/array';
 import { merge } from '@ember/polyfills';
 import { run } from '@ember/runloop';
 import { getWithDefault, set, get } from '@ember/object';
-
 import DataAdapterMixin from '@busybusy/data/mixins/simple-auth-data-adapter';
 import BusyError from '@busybusy/data/utils/error';
 import Query from '@busybusy/data/utils/query';
+import Ember from 'ember';
 
 /**
  * @class
@@ -38,7 +37,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	coalesceFindRequests: true,
 
 	pathForType(type) {
-		return Ember.String.dasherize(type);
+		return dasherize(type);
 	},
 
 	version: 1,
