@@ -2,9 +2,9 @@
 import Ember from 'ember';
 
 const { isNone, isEmpty } = Ember;
-const _error = Ember.Object.extend();
+const BusyError = Ember.Object.extend();
 
-_error.reopenClass({
+BusyError.reopenClass({
 	normalizeAdapterError(title="ERROR", status=0, code=0, detail='') {
 		status = parseInt(status, 10);
 
@@ -38,4 +38,4 @@ _error.reopenClass({
 	}
 });
 
-export default _error;
+export default BusyError;
