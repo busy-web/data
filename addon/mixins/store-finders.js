@@ -6,6 +6,9 @@ import Ember from 'ember';
 import DS from 'ember-data';
 import { Assert } from 'busy-utils';
 
+import createAggregateRecord from 'busy-data/aggregates/create-aggregate-record';
+import createAggregateArray from 'busy-data/aggregates/create-aggregate-array';
+
 /***/
 const MAX_PAGE_SIZE = 10;
 
@@ -175,6 +178,14 @@ export default Mixin.create({
 			promise = _findRecords(adapter, this, modelClass, query).then(payload => _processResults(this, array, payload));
 		}
 		return PromiseArray.create({ promise });
+	},
+
+	aggregate(model, options) {
+		if (isArray(model)) {
+			return createAggregateArray(this, model, options);
+		} else {
+			return createAggregateRecord(this, model, options);
+		}
 	}
 });
 
