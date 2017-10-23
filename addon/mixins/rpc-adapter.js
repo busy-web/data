@@ -2,6 +2,7 @@
  * @module Mixins
  */
 import { isArray, A } from '@ember/array';
+import { assert } from '@ember/debug';
 import Mixin from '@ember/object/mixin';
 
 /**
@@ -43,6 +44,7 @@ export default Mixin.create({
 		}
 
 		const method = type.proto()._methodName;
+		assert('The rpc model has no _methodName to call.', !Ember.isNone(method));
 
 		const hash = {
 			method,
