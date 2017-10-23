@@ -2,8 +2,11 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
-import { Assert } from 'busy-utils';
+import { later } from '@ember/runloop';
+import $ from 'jquery';
+import { isNone } from '@ember/utils';
+import { get } from '@ember/object';
+import Mixin from '@ember/object/mixin';
 
 /**
  * `BusyData/Mixins/ImageAdapter`
@@ -12,7 +15,7 @@ import { Assert } from 'busy-utils';
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * sets up the parameters for the ajax call
 	 *
@@ -25,12 +28,12 @@ export default Ember.Mixin.create({
 	 */
 	ajaxOptions(url, type, options={}) {
 		// get a file object if it exists.
-		const fileObject = Ember.get(options, 'data._fileObject');
+		const fileObject = get(options, 'data._fileObject');
 
 		// if the fileObject exists then change the type to GET to avoid
 		// ember data changing the data structure.
 		let _type = type;
-		if (!Ember.isNone(fileObject)) {
+		if (!isNone(fileObject)) {
 			_type = 'GET';
 			options.isUpload = true;
 		}
@@ -50,7 +53,7 @@ export default Ember.Mixin.create({
 		// if _fileObject is set then set up a file upload
 		// else if type is post set up POST content and data object
 		// otherwise the data and content are left alone
-		if (!Ember.isNone(fileObject)) {
+		if (!isNone(fileObject)) {
 			this.setupUpload(hash);
 		}
 		return hash;
@@ -65,9 +68,6 @@ export default Ember.Mixin.create({
 	 * @returns {object}
 	 */
 	setupUpload(hash) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isObject(hash);
-
 		// gets the fileObject from the hash.data object
 		// that was created in the serializer.serializeIntoHash
 		// The fileObject has event listeners for uploadStart,
@@ -99,9 +99,9 @@ export default Ember.Mixin.create({
 		// set the xhr function to report
 		// upload progress
 		hash.xhr = () => {
-			var xhr = Ember.$.ajaxSettings.xhr();
+			var xhr = $.ajaxSettings.xhr();
 			xhr.upload.onprogress = (e) => {
-				Ember.run.later(this, function() {
+				later(this, function() {
 					fileObject.uploadProgress(e);
 				}, 100);
 			};
@@ -117,11 +117,8 @@ export default Ember.Mixin.create({
 	 * @returns {object}
 	 */
 	convertDataForUpload(data) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isObject(data);
-
 		const formData = new FormData();
-		Ember.$.each(data, (key, val) => {
+		$.each(data, (key, val) => {
 			if (data.hasOwnProperty(key)) {
 				if (key !== 'file_url' && key !== 'file_thumb_url' && key !== 'image_url' && key !== 'image_thumb_url') {
 					formData.append(key, val);

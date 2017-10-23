@@ -1,8 +1,9 @@
 /**
  * default busy-data import
  */
+import { merge } from '@ember/polyfills';
+import { get } from '@ember/object';
 import DS from 'ember-data';
-import Ember from 'ember';
 import RPCModelMixin from './mixins/rpc-model';
 
 DS.Model.reopen({
@@ -30,7 +31,7 @@ DS.Model.reopen({
 
 DS.Model.reopenClass({
 	eachRelationship(callback, binding) {
-		Ember.get(this, 'relationshipsByName').forEach(function(relationship, name) {
+		get(this, 'relationshipsByName').forEach(function(relationship, name) {
 			if (relationship.options.modelName !== relationship.type) {
 				relationship.type = relationship.options.modelName;
 			}
@@ -39,7 +40,7 @@ DS.Model.reopenClass({
 	},
 
 	typeForRelationship(name, store) {
-		var relationship = Ember.get(this, 'relationshipsByName').get(name);
+		var relationship = get(this, 'relationshipsByName').get(name);
 		if (relationship.options.modelName !== relationship.type) {
 			relationship.type = relationship.options.modelName;
 		}
@@ -61,7 +62,7 @@ DS.hasMany = function(modelName, options={}) {
 	return hasMany(modelName, options);
 };
 
-const BS = Ember.merge({}, DS);
+const BS = merge({}, DS);
 
 BS.RPCModel = DS.Model.extend(RPCModelMixin, {});
 export default BS;

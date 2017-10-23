@@ -2,7 +2,8 @@
  * @module adapters
  *
  */
-import Ember from 'ember';
+import { isEmpty } from '@ember/utils';
+import { dasherize } from '@ember/string';
 import DS from 'ember-data';
 import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';
 
@@ -28,7 +29,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	coalesceFindRequests: true,
 
 	pathForType(type) {
-		return Ember.String.dasherize(type);
+		return dasherize(type);
 	},
 
 	version: 1,
@@ -45,7 +46,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 
 		// put the params back on the url string but first check
 		// to see if the start `?` query params symbol is already there.
-		if (!Ember.isEmpty(params)) {
+		if (!isEmpty(params)) {
 			if (!/\?/.test(hash.url)) {
 				hash.url = hash.url + '?' + params;
 			} else {

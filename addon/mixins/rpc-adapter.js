@@ -1,8 +1,8 @@
 /**
  * @module Mixins
  */
-import Ember from 'ember';
-import { Assert } from 'busy-utils';
+import { isArray, A } from '@ember/array';
+import Mixin from '@ember/object/mixin';
 
 /**
  * `BusyData/Mixins/RpcAdapter`
@@ -11,7 +11,7 @@ import { Assert } from 'busy-utils';
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * Override for query to redirect rcp queries
 	 *
@@ -37,16 +37,12 @@ export default Ember.Mixin.create({
 	 * @return {Ember.RSVP.Promise}
 	 */
 	queryRPC(store, type, query) {
-		Assert.funcNumArgs(arguments, 3, true);
-		Assert.isObject(query);
-
 		const url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
 		if (this.sortQueryParams) {
 			query = this.sortQueryParams(query);
 		}
 
 		const method = type.proto()._methodName;
-		Assert.test('The rpc model has no _methodName to call.', !Ember.isNone(method));
 
 		const hash = {
 			method,
@@ -57,8 +53,8 @@ export default Ember.Mixin.create({
 
 		return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
 			data = data.result;
-			if(!Ember.isArray(data.data)) {
-				data.data = Ember.A([data.data]);
+			if(!isArray(data.data)) {
+				data.data = A([data.data]);
 			}
 			return data;
 		});

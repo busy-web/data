@@ -2,7 +2,11 @@
  * @module store
  *
  */
-import Ember from 'ember';
+import { merge } from '@ember/polyfills';
+import { resolve } from 'rsvp';
+import { assert } from '@ember/debug';
+import { get } from '@ember/object';
+import { isNone, isEmpty, typeOf } from '@ember/utils';
 import DS from 'ember-data';
 
 /***/
@@ -16,7 +20,7 @@ export default DS.Store.extend({
 	_maxPageSize: kPageSize,
 
 	findAll(modelType, query={}) {
-		if (Ember.isNone(Ember.get(query, 'limit'))) {
+		if (isNone(get(query, 'limit'))) {
 			query.page_size = query.page_size || this._maxPageSize;
 			query.page = query.page || 1;
 		}
@@ -32,7 +36,7 @@ export default DS.Store.extend({
 			let nextQuery = {};
 			if (this.nextParams(models, nextQuery, _query)) {
 				return this.findAll(modelType, nextQuery).then(moreModels => {
-					if (!Ember.isNone(moreModels) && !Ember.isNone(moreModels.get) && !Ember.isEmpty(moreModels.get('content'))) {
+					if (!isNone(moreModels) && !isNone(moreModels.get) && !isEmpty(moreModels.get('content'))) {
 						models.pushObjects(moreModels.get('content'));
 					}
 					return models;
@@ -60,10 +64,10 @@ export default DS.Store.extend({
 			keys = [keys];
 		}
 
-		Ember.assert('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
-		Ember.assert('keys must be of type array|strings in store.findWhereIn()', Ember.typeOf(keys) === 'array');
-		Ember.assert('values must be an array of strings in store.findWhereIn()', Ember.typeOf(values) === 'array');
-		Ember.assert('query must be an object in store.findWhereIn()', typeof query === 'object');
+		assert('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
+		assert('keys must be of type array|strings in store.findWhereIn()', typeOf(keys) === 'array');
+		assert('values must be an array of strings in store.findWhereIn()', typeOf(values) === 'array');
+		assert('query must be an object in store.findWhereIn()', typeof query === 'object');
 
 		// copy the array values so not to change
 		// the originals.
@@ -73,7 +77,7 @@ export default DS.Store.extend({
 		});
 
 		if (_values[0].length === 0) {
-			return Ember.RSVP.resolve([]);
+			return resolve([]);
 		}
 
 		const promise = [];
@@ -112,13 +116,13 @@ export default DS.Store.extend({
 
 	_findWhereIn(queryList) {
 		if (queryList.length === 0) {
-			return Ember.RSVP.resolve([]);
+			return resolve([]);
 		}
 
 		const params = queryList.shift();
 		return this.findAll(params.modelType, params.query).then((model) => {
 			return this._findWhereIn(queryList).then((moreModels) => {
-				if (!Ember.isEmpty(moreModels)) {
+				if (!isEmpty(moreModels)) {
 					return model.pushObjects(moreModels.get('content'));
 				}
 				return model;
@@ -139,12 +143,12 @@ export default DS.Store.extend({
 	nextParams(model, query, lastQuery) {
 		let isJsonApi = false;
 		let next = model.get('meta.next');
-		if (Ember.isNone(next)) {
+		if (isNone(next)) {
 			isJsonApi = true;
 			next = model.get('links.next');
 		}
 
-		if (!Ember.isEmpty(next)) {
+		if (!isEmpty(next)) {
 			if (isJsonApi) {
 				let [ , params ] = next.split('?');
 				params = params.split('&');
@@ -164,7 +168,7 @@ export default DS.Store.extend({
 				});
 			} else {
 				lastQuery.page = lastQuery.page + 1;
-				Ember.merge(query, lastQuery);
+				merge(query, lastQuery);
 			}
 			return true;
 		}

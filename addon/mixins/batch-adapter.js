@@ -2,9 +2,15 @@
  * @module mixins
  *
  */
-import Ember from 'ember';
+import { merge } from '@ember/polyfills';
+import $ from 'jquery';
+import { isNone } from '@ember/utils';
+import { observer, get } from '@ember/object';
+import { later } from '@ember/runloop';
+import { assert } from '@ember/debug';
+import { A } from '@ember/array';
+import Mixin from '@ember/object/mixin';
 import DS from 'ember-data';
-import { Assert } from 'busy-utils';
 
 /**
  * `BusyData/Mixins/BatchAdapter`
@@ -13,7 +19,7 @@ import { Assert } from 'busy-utils';
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * max request size for the batch
 	 *
@@ -63,7 +69,7 @@ export default Ember.Mixin.create({
 
 	init() {
 		// setup the queue
-		this.set('queue', Ember.A());
+		this.set('queue', A());
 		this._super(...arguments);
 	},
 
@@ -75,13 +81,13 @@ export default Ember.Mixin.create({
 	 * @param expired {boolean} default: false - true if the timer is run out
 	 */
 	run(expired=false) {
-		Assert.isBoolean(expired);
+		assert('Arg1 or run must be a boolean value', typeof expired === 'boolean');
 
 		// if waiting and the queue is greater or equal to maxBatchSize or the time to wait has expired
 		if ((expired && this.get('queue.length') > 0) || (this.get('queue.length') >= this.get('maxBatchSize'))) {
 			// get the queue and then clear the queue
 			const batch = this.get('queue');
-			this.set('queue', Ember.A());
+			this.set('queue', A());
 
 			// send current batch results
 			this.sendBatch(batch);
@@ -90,7 +96,7 @@ export default Ember.Mixin.create({
 			this.set('waiting', true);
 
 			// set wait to maxBatchWait
-			Ember.run.later(this, function() {
+			later(this, function() {
 				// set waiting to false
 				this.set('waiting', false);
 
@@ -107,7 +113,7 @@ export default Ember.Mixin.create({
 	 * @private
 	 * @method notifyQueue
 	 */
-	notifyQueue: Ember.observer('queue.[]', function() {
+	notifyQueue: observer('queue.[]', function() {
 		this.run();
 	}),
 
@@ -121,9 +127,6 @@ export default Ember.Mixin.create({
 	 * @return {string}
 	 */
 	getName(url) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isString(url);
-
 		// strip http and query params
 		let name = url.replace(/^https?:\/\/([^\?]*)[\s\S]*$/, '$1');
 
@@ -159,11 +162,6 @@ export default Ember.Mixin.create({
 	 * @return {string} btoa hash
 	 */
 	checksum(url, type, data={}) {
-		Assert.funcNumArgs(arguments, 3);
-		Assert.isString(url);
-		Assert.isString(type);
-		Assert.isObject(data);
-
 		// stringify the data
 		const dataStr = window.unescape(window.encodeURIComponent(JSON.stringify(data)));
 
@@ -181,9 +179,6 @@ export default Ember.Mixin.create({
 	 * @return {object} { requests, responses, hashMap }
 	 */
 	prepareBatch(batch) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isArray(batch);
-
 		const requests = {};
 		const hashMap = {};
 		const responses = [];
@@ -192,7 +187,7 @@ export default Ember.Mixin.create({
 			// create a hashkey for this models query so
 			// if two identical calls come in the call only gets made once.
 			const hashKey = this.checksum(hash.url, hash.type, hash.data);
-			if (Ember.isNone(hashMap[hashKey])) {
+			if (isNone(hashMap[hashKey])) {
 				// get the url type and data for this call
 				const url = this.getName(hash.url);
 				const data = this.getData(hash);
@@ -232,9 +227,6 @@ export default Ember.Mixin.create({
 	 * @param batch {array}
 	 */
 	sendBatch(batch) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isArray(batch);
-
 		// get the url
 		const url = this.buildURL('batch');
 
@@ -266,7 +258,7 @@ export default Ember.Mixin.create({
 		};
 
 		// send ajax call
-		Ember.$.ajax(hash);
+		$.ajax(hash);
 	},
 
 	/**
@@ -278,7 +270,7 @@ export default Ember.Mixin.create({
 	 * @param hash
 	 */
 	_ajaxRequest(hash) {
-		if (this.get('isBatchEnabled') === true && Ember.get(hash, 'disableBatch') !== true) {
+		if (this.get('isBatchEnabled') === true && get(hash, 'disableBatch') !== true) {
 			this.get('queue').pushObject(hash);
 		} else {
 			this._super(...arguments);
@@ -296,28 +288,22 @@ export default Ember.Mixin.create({
 	 * @param jqXHR {object}
 	 */
 	success(response, handler, textStatus, jqXHR) {
-		Assert.funcNumArgs(arguments, 4, true);
-		Assert.isObject(response);
-		Assert.isObject(handler);
-		Assert.isString(textStatus);
-		Assert.isObject(jqXHR);
-
-		const gStatus = Ember.get(jqXHR, 'status');
-		const gStatusText = Ember.get(jqXHR, 'statusText') || textStatus;
+		const gStatus = get(jqXHR, 'status');
+		const gStatusText = get(jqXHR, 'statusText') || textStatus;
 		// make sure batch response is good
-		if (Ember.get(response, 'success') === true) {
+		if (get(response, 'success') === true) {
 			// get the response results
-			const results = Ember.get(response, 'data.results') || {};
+			const results = get(response, 'data.results') || {};
 			handler.responses.forEach(item => {
 				// get the key from the hashMap and use that
 				// to get the data for this items call
 				const key = handler.hashMap[item.hashKey];
-				const data = Ember.get(results, key);
+				const data = get(results, key);
 				const status = this.getBatchStatusForModel(data, gStatus);
 				const statusText = this.getBatchStatusTextForModel(data, gStatusText);
 
 				// create an xhr response for this model
-				const xhr = Ember.merge({}, jqXHR);
+				const xhr = merge({}, jqXHR);
 				xhr.statusText = statusText;
 				xhr.status = status;
 				xhr.responseText = JSON.stringify(data);
@@ -349,9 +335,7 @@ export default Ember.Mixin.create({
 	 * @return {string} the statusText
 	 */
 	getBatchStatusTextForModel(result, defaultValue) {
-		Assert.isObject(result);
-
-		return Ember.get(result, 'statusText') || defaultValue;
+		return get(result, 'statusText') || defaultValue;
 	},
 
 	/**
@@ -366,9 +350,7 @@ export default Ember.Mixin.create({
 	 * @return {number} the status
 	 */
 	getBatchStatusForModel(result, defaultValue) {
-		Assert.isObject(result);
-
-		return Ember.get(result, 'status') || defaultValue;
+		return get(result, 'status') || defaultValue;
 	},
 
 	/**

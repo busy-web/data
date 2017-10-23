@@ -2,12 +2,10 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
+import { isEmpty } from '@ember/utils';
+import Mixin from '@ember/object/mixin';
+import { getOwner } from '@ember/application';
 import RPCAdapter from 'busy-data/adapters/rpc-adapter';
-import { Assert } from 'busy-utils';
-
-/***/
-const { getOwner } = Ember;
 
 /**
  * `BusyData/Mixins/RpcStore`
@@ -16,7 +14,7 @@ const { getOwner } = Ember;
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * Simple rpc request method that does not use the ember-data
 	 * model layer.
@@ -30,17 +28,11 @@ export default Ember.Mixin.create({
 	 * @return {Ember.RSVP.Promise}
 	 */
 	rpcRequest(type, method, params={}, baseURL='') {
-		Assert.funcNumArgs(arguments, 4);
-		Assert.isString(type);
-		Assert.isString(method);
-		Assert.isObject(params);
-		Assert.isString(baseURL);
-
 		// initialize the rpc client
 		const client = RPCAdapter.create(getOwner(this).ownerInjection(), {url: type});
 
 		// set the url if baseURL is provided
-		if (!Ember.isEmpty(baseURL)) {
+		if (!isEmpty(baseURL)) {
 			client.set('baseURL', baseURL);
 		}
 

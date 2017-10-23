@@ -2,7 +2,13 @@
  * @module library
  *
  */
-import Ember from 'ember';
+import $ from 'jquery';
+import { run } from '@ember/runloop';
+import { Promise as EmberPromise } from 'rsvp';
+import { typeOf, isNone } from '@ember/utils';
+import { assert } from '@ember/debug';
+import { inject as service } from '@ember/service';
+import EmberObject, { computed } from '@ember/object';
 
 /**
  * `Library\RPC`
@@ -13,9 +19,9 @@ import Ember from 'ember';
  *
  * @extends Ember.Object
  */
-export default Ember.Object.extend(
+export default EmberObject.extend(
 {
-	dataService: Ember.inject.service('busy-data'),
+	dataService: service('busy-data'),
 
 	baseURL: null,
 
@@ -27,7 +33,7 @@ export default Ember.Object.extend(
 	 * @private
 	 * @method headers
 	 */
-	headers: Ember.computed('dataService.authKey', function()
+	headers: computed('dataService.authKey', function()
 	{
 		var authUser = this.get('dataService.authKey');
 		var headers = null;
@@ -63,14 +69,14 @@ export default Ember.Object.extend(
 	call: function(method, params)
 	{
 		// method must be passed in and must be a string
-		Ember.assert('RPC ERROR: the rpc server method must be provided and it must be a string', Ember.typeOf(method) === 'string');
+		assert('RPC ERROR: the rpc server method must be provided and it must be a string', typeOf(method) === 'string');
 
 		// null or undefined params is accepted so if params is
 		// null or undefined then create an empty object
-		params = Ember.isNone(params) ? {} : params;
+		params = isNone(params) ? {} : params;
 
 		// assert params is an object and not a string, number or boolean
-		Ember.assert('RPC ERROR: params must be an object if it is passed in!', Ember.typeOf(params) === 'object');
+		assert('RPC ERROR: params must be an object if it is passed in!', typeOf(params) === 'object');
 
 		return this.ajax(method, params);
 	},
@@ -86,11 +92,11 @@ export default Ember.Object.extend(
 	ajaxUrl: function()
 	{
 		var url = this.get('dataService.host');
-		if(!Ember.isNone(this.get('baseURL')))
+		if(!isNone(this.get('baseURL')))
 		{
 			url = this.get('baseURL');
 		}
-			
+
 		url = url + '/' + this.get('url');
 
 		if(this.get('dataService.shouldSendVersion'))
@@ -140,7 +146,7 @@ export default Ember.Object.extend(
 
 		// set auth header if public key is set
 		var headers = this.get('headers');
-		if(!Ember.isNone(headers))
+		if(!isNone(headers))
 		{
 			xhr.beforeSend = function(request)
 			{
@@ -166,7 +172,7 @@ export default Ember.Object.extend(
 	ajax: function(method, params)
 	{
 		var rpc = this;
-		return new Ember.RSVP.Promise(function(resolve, reject)
+		return new EmberPromise(function(resolve, reject)
 		{
 			// creates the xhr object
 			var xhr = rpc.ajaxOptions(method, params);
@@ -176,22 +182,22 @@ export default Ember.Object.extend(
 			{
 				if(res.result.success)
 				{
-					Ember.run(null, resolve, res.result);
+					run(null, resolve, res.result);
 				}
 				else
 				{
-					Ember.run(null, reject, res.result);
+					run(null, reject, res.result);
 				}
 			};
 
 			// on error method
 			xhr.error = function(error)
 			{
-				Ember.run(null, reject, error);
+				run(null, reject, error);
 			};
 
 			// send
-			Ember.$.ajax(xhr);
+			$.ajax(xhr);
 		});
 	},
 });
