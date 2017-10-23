@@ -2,8 +2,13 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
-import { UUID, Assert } from 'busy-utils';
+import { isArray } from '@ember/array';
+import { merge } from '@ember/polyfills';
+import { underscore, dasherize } from '@ember/string';
+import { isNone, typeOf, isEmpty } from '@ember/utils';
+import { set, get } from '@ember/object';
+import Mixin from '@ember/object/mixin';
+import { v4 } from 'ember-uuid';
 import query from 'busy-data/utils/query';
 
 /***/
@@ -20,16 +25,16 @@ const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecor
  *
  * @class JSONAPISerializer
  * @namespace BusyData.Mixin
- * @extends Ember.Mixin
+ * @extends Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 
 	/**
 	 * Override of normalizeResponse in Ember Data serialize
 	 *
 	 * @private
 	 * @method normalizeResponse
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param payload {object} json data
 	 * @param requestType {string} ember data request type
@@ -64,7 +69,7 @@ export default Ember.Mixin.create({
 	 *
 	 * @private
 	 * @method convertResponse
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param payload {object} json data
 	 * @param requestType {string} ember data request type
@@ -89,12 +94,11 @@ export default Ember.Mixin.create({
 
 		// get the meta properties as an object from the payload
 		const meta = this.getMetaFromResponse(payload, requestType);
-		Assert.isObject(meta);
 
 		// add meta data
-		Ember.set(json, 'meta', meta);
+		set(json, 'meta', meta);
 
-		if (!Ember.isNone(json.data)) {
+		if (!isNone(json.data)) {
 			// create a flat json-api object
 			this.flattenResponseData(store, primaryModelClass, json);
 		}
@@ -140,21 +144,19 @@ export default Ember.Mixin.create({
 	 *
 	 * @private
 	 * @method flattenResponseData
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param data {object|array}
 	 * @return {object}
 	 */
 	flattenResponseData(store, primaryModelClass, json) {
-		Assert.funcNumArgs(arguments, 3, true);
-
 		// array to track included models
 		const included = [];
 		const type = primaryModelClass.modelName;
 
 		// the data object for the json-api response
 		let _data;
-		if(Ember.typeOf(json.data) === 'array') {
+		if(typeOf(json.data) === 'array') {
 			// parse the data array objects
 			_data = [];
 			json.data.forEach(item => {
@@ -178,7 +180,7 @@ export default Ember.Mixin.create({
 	 *
 	 * @private
 	 * @method buildJSON
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {object} the json object to parse
@@ -186,16 +188,11 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	buildJSON(store, primaryModelClass, type, json, included) {
-		Assert.funcNumArgs(arguments, 5, true);
-		Assert.isString(type);
-		Assert.isObject(json);
-		Assert.isArray(included);
-
-		const primaryKey = Ember.get(this, 'primaryKey');
+		const primaryKey = get(this, 'primaryKey');
 
 		// create a data type object
 		const model = {
-			id: Ember.get(json, primaryKey),
+			id: get(json, primaryKey),
 			type: this.nestedModelName(store, primaryModelClass, type),
 			attributes: {},
 			relationships: this.addRelationships(store, primaryModelClass, json)
@@ -204,30 +201,30 @@ export default Ember.Mixin.create({
 		// find all attributes and nested models
 		for (let i in json) {
 			if (json.hasOwnProperty(i)) {
-				const value = Ember.get(json, i);
+				const value = get(json, i);
 				// an object is going to be a nested model
-				if(!Ember.isNone(value) && typeof value === 'object') {
+				if(!isNone(value) && typeof value === 'object') {
 					let obj;
 					// embers typeOf will tell if the object is an array
-					if (Ember.typeOf(value) === 'array') {
+					if (typeOf(value) === 'array') {
 						// get the nested models
 						obj = this.buildNestedArray(store, primaryModelClass, i, value, included);
 					} else {
-						if (!Ember.get(value, primaryKey)) {
-							value.id = UUID.generate();
+						if (!get(value, primaryKey)) {
+							value.id = v4.apply(v4, arguments);
 						}
 						// get the nested model
 						obj = this.buildNested(store, primaryModelClass, i, value, included);
 					}
 
 					// add the obj to the relationship if it exists
-					if (!Ember.isEmpty(obj)) {
+					if (!isEmpty(obj)) {
 						// add the relationship
-						Ember.set(model.relationships, i, { data: obj });
+						set(model.relationships, i, { data: obj });
 					}
 				} else {
 					// add the property
-					Ember.set(model.attributes, i, value);
+					set(model.attributes, i, value);
 				}
 			}
 		}
@@ -238,20 +235,20 @@ export default Ember.Mixin.create({
 		const data = {};
 		primaryModelClass.eachRelationship((type, opts) => {
 			// get the model name + -id and underscore it.
-			let name = Ember.String.underscore(`${opts.type}-id`);
+			let name = underscore(`${opts.type}-id`);
 			if (opts.kind === 'hasMany') {
 				name = 'id';
 			}
 
 			if (opts.options.referenceKey) {
 				// set the name to the referenceKey
-				name = Ember.String.underscore(opts.options.referenceKey);
+				name = underscore(opts.options.referenceKey);
 			}
 
 			let key = 'id';
 			if (name === 'id') {
 				// if the referenceKey is id then the key should be the model name + `-id` underscored
-				key = Ember.String.underscore(`${primaryModelClass.modelName}-id`);
+				key = underscore(`${primaryModelClass.modelName}-id`);
 			}
 
 			// foreignKey overrides all other key forms if set.
@@ -261,16 +258,16 @@ export default Ember.Mixin.create({
 			}
 
 			// get the id from the json object if it is set
-			const id = Ember.get(json, name);
+			const id = get(json, name);
 
 			// create data object
 			const relationship = {};
 
 			// for a belongsTo relationship set the data as an object with `id` and `type`
-			if (Ember.isNone(opts.options.query) && opts.kind === 'belongsTo' && key === 'id') {
+			if (isNone(opts.options.query) && opts.kind === 'belongsTo' && key === 'id') {
 				relationship.data = null;
 
-				if (!Ember.isNone(id)) {
+				if (!isNone(id)) {
 					// add id for data object
 					relationship.data = {
 						type: opts.type,
@@ -279,12 +276,12 @@ export default Ember.Mixin.create({
 				}
 
 				// set the data object for the relationship
-				data[Ember.String.dasherize(opts.key)] = relationship;
+				data[dasherize(opts.key)] = relationship;
 			} else { // for a has many set the data to an empty array
 				// create data object
 				let link = '';
-				if (!Ember.isNone(opts.options.query)) {
-					const queryParams = Ember.merge({}, opts.options.query);
+				if (!isNone(opts.options.query)) {
+					const queryParams = merge({}, opts.options.query);
 					if (this.validateQuery(json, queryParams)) {
 						link += query.stringify(queryParams);
 
@@ -294,13 +291,13 @@ export default Ember.Mixin.create({
 					}
 				}
 
-				if (!Ember.isNone(id)) {
+				if (!isNone(id)) {
 					// add id for data object
-					key = Ember.String.underscore(key);
+					key = underscore(key);
 					link += `&${key}=${id}`;
 				}
 
-				if (!Ember.isEmpty(link)) {
+				if (!isEmpty(link)) {
 					link = '?' + link.replace(/^&/, '');
 					relationship.links = { related: `/${opts.type}${link}` };
 				} else {
@@ -311,7 +308,7 @@ export default Ember.Mixin.create({
 					}
 				}
 
-				data[Ember.String.dasherize(opts.key)] = relationship;
+				data[dasherize(opts.key)] = relationship;
 			}
 		});
 
@@ -321,16 +318,16 @@ export default Ember.Mixin.create({
 	validateQuery(json, query) {
 		let isvalid = true;
 		Object.keys(query).forEach(key => {
-			let value = Ember.get(query, key);
-			if (!Ember.isNone(value) && !Ember.isArray(value) && typeof value === 'object') {
+			let value = get(query, key);
+			if (!isNone(value) && !isArray(value) && typeof value === 'object') {
 				this.validateQuery(json, value);
-				Ember.set(query, key, value);
+				set(query, key, value);
 			} else {
 				if (/^self/.test(value)) {
 					value = this.keyForAttribute(value.replace(/^self\./, ''));
-					value = Ember.get(json, value);
+					value = get(json, value);
 					if (value !== undefined) {
-						Ember.set(query, key, value);
+						set(query, key, value);
 					} else {
 						isvalid = false;
 					}
@@ -361,7 +358,7 @@ export default Ember.Mixin.create({
 	 *
 	 * @private
 	 * @method buildNested
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {object} the json object to parse
@@ -369,11 +366,6 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	buildNested(store, primaryModelClass, type, json, included) {
-		Assert.funcNumArgs(arguments, 5, true);
-		Assert.isString(type);
-		Assert.isObject(json);
-		Assert.isArray(included);
-
 		// create the actual data model
 		const _data = this.buildJSON(store, primaryModelClass, type, json, included);
 
@@ -395,7 +387,7 @@ export default Ember.Mixin.create({
 	 *
 	 * @private
 	 * @method buildNestedArray
-	 * @param store {Ember.Store}
+	 * @param store {Storer
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {array} the json object to parse
@@ -403,11 +395,6 @@ export default Ember.Mixin.create({
 	 * @return {object}
 	 */
 	buildNestedArray(store, primaryModelClass, type, json, included) {
-		Assert.funcNumArgs(arguments, 5, true);
-		Assert.isString(type);
-		Assert.isArray(json);
-		Assert.isArray(included);
-
 		const data = [];
 
 		json.forEach(item => {

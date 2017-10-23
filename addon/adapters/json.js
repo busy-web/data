@@ -4,11 +4,18 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
+import EmberPromise, { reject } from 'rsvp';
+
+import { run, later } from '@ember/runloop';
+import { isNone } from '@ember/utils';
+import { isArray } from '@ember/array';
+import { merge } from '@ember/polyfills';
+import { get, set, getWithDefault } from '@ember/object';
+import { dasherize } from '@ember/string';
+
 import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
 import BusyError from 'busy-data/utils/error';
 import Query from 'busy-data/utils/query';
-
-const { isNone, isArray, RSVP, merge, String, run, FEATURES: { isEnabled }, get, set, getWithDefault } = Ember;
 
 /**
  * @class
@@ -32,7 +39,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	coalesceFindRequests: true,
 
 	pathForType(type) {
-		return String.dasherize(type);
+		return dasherize(type);
 	},
 
 	version: 1,
@@ -100,7 +107,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	},
 
 	_hasCustomizedAjax() {
-		if (isEnabled('ds-improved-ajax')) {
+		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
 			return false;
 		} else {
 			this._super(...arguments);
@@ -140,13 +147,13 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 					}
 				}
 			}
-			return RSVP.reject(err);
+			return reject(err);
 		});
 	},
 
 	_waitPromise(time=1) {
-		return new RSVP.Promise(resolve => {
-			run.later(() => {
+		return new EmberPromise(resolve => {
+			later(() => {
 				run(null, resolve, null);
 			}, time);
 		});

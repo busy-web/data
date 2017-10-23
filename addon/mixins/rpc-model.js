@@ -2,7 +2,7 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
+import Mixin from '@ember/object/mixin';
 
 /**
  * `BusyData/Mixins/RpcModel`
@@ -11,7 +11,7 @@ import Ember from 'ember';
  * @namespace BusyData.Mixins
  * @extends Ember.Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * flag to tell this is an rpc model
 	 *

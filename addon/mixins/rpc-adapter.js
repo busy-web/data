@@ -2,18 +2,20 @@
  * @module Mixins
  */
 import Ember from 'ember';
-import { Assert } from 'busy-utils';
-
-const { isNone, get } = Ember;
+//import { isArray, A } from '@ember/array';
+import { assert } from '@ember/debug';
+import { isNone, isEmpty } from '@ember/utils';
+import EmberObject, { get } from '@ember/object';
+import Mixin from '@ember/object/mixin';
 
 /**
  * `BusyData/Mixins/RpcAdapter`
  *
  * @class RpcAdapter
  * @namespace BusyData.Mixins
- * @extends Ember.Mixin
+ * @extends Mixin
  */
-export default Ember.Mixin.create({
+export default Mixin.create({
 	/**
 	 * Override for query to redirect rcp queries
 	 *
@@ -25,9 +27,9 @@ export default Ember.Mixin.create({
 			return this.queryRPC(store, type, query);
 		} else {
 			return this._super(...arguments).then(data => {
-				if(!Ember.isArray(data.data)) {
-					data.data = Ember.A([data.data]);
-				}
+				//if(!isArray(data.data)) {
+				//	data.data = A([data.data]);
+				//}
 				return data;
 			});
 		}
@@ -41,12 +43,9 @@ export default Ember.Mixin.create({
 	 * @param store {DS.Store}
 	 * @param type {DS.ModelType}
 	 * @param query {object}
-	 * @return {Ember.RSVP.Promise}
+	 * @return {RSVP.Promise}
 	 */
 	queryRPC(store, type, query) {
-		Assert.funcNumArgs(arguments, 3, true);
-		Assert.isObject(query);
-
 		let promise;
 		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
 			const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
@@ -68,12 +67,7 @@ export default Ember.Mixin.create({
 	},
 
 	rpcRequest(store, modelName, method, query={}, host) {
-		Assert.funcNumArgs(arguments, 5);
-		Assert.isString(modelName);
-		Assert.isString(method);
-		Assert.isObject(query);
-
-		const type = Ember.Object.extend({
+		const type = EmberObject.extend({
 			_methodName: method,
 			_clientName: modelName,
 			_hostName: host
@@ -98,7 +92,8 @@ export default Ember.Mixin.create({
 	dataForRequest(params) {
 		if (params._requestType === 'rpc') {
 			const method = params.type.proto()._methodName;
-			Assert.test('The rpc model has no _methodName to call.', !isNone(method));
+			assert('The rpc model has no _methodName to call.', !isNone(method));
+
 			return {
 				method,
 				params: params.query,
@@ -134,7 +129,7 @@ export default Ember.Mixin.create({
 			}
 
 			const host = params.type.proto()._hostName;
-			if (!Ember.isEmpty(host) && get(this, 'host') !== host) {
+			if (!isEmpty(host) && get(this, 'host') !== host) {
 				const regx = new RegExp(get(this, 'host'));
 				url = url.replace(regx, host);
 			}

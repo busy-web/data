@@ -2,20 +2,31 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
-import { Assert } from 'busy-utils';
-
-const { isNone, get, set, merge } = Ember;
+import $ from 'jquery';
+import { later } from '@ember/runloop';
+import { merge } from '@ember/polyfills';
+import { isNone } from '@ember/utils';
+import { get, set } from '@ember/object';
+import Mixin from '@ember/object/mixin';
 
 /**
  * `BusyData/Mixins/ImageAdapter`
  *
  * @class ImageAdapter
  * @namespace BusyData.Mixins
- * @extends Ember.Mixin
+ * @extends Mixin
  */
-export default Ember.Mixin.create({
-
+export default Mixin.create({
+	/**
+	 * sets up the parameters for the ajax call
+	 *
+	 * @private
+	 * @method ajaxOptions
+	 * @param url {string}
+	 * @param type {object} model type
+	 * @param options {object} data options
+	 * @returns {object} ajax call object
+	 */
 	ajaxOptions(url, type, options) {
 		options = options || {};
 
@@ -57,9 +68,6 @@ export default Ember.Mixin.create({
 	 * @returns {object}
 	 */
 	setupUpload(hash) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isObject(hash);
-
 		// gets the fileObject from the hash.data object
 		// that was created in the serializer.serializeIntoHash
 		// The fileObject has event listeners for uploadStart,
@@ -91,9 +99,9 @@ export default Ember.Mixin.create({
 		// set the xhr function to report
 		// upload progress
 		set(hash, 'xhr', () => {
-			var xhr = Ember.$.ajaxSettings.xhr();
+			const xhr = $.ajaxSettings.xhr();
 			set(xhr, 'upload.onprogress', (e) => {
-				Ember.run.later(this, function() {
+				later(this, function() {
 					fileObject.uploadProgress(e);
 				}, 100);
 			});
@@ -109,11 +117,8 @@ export default Ember.Mixin.create({
 	 * @returns {object}
 	 */
 	convertDataForUpload(data) {
-		Assert.funcNumArgs(arguments, 1, true);
-		Assert.isObject(data);
-
 		const formData = new FormData();
-		Ember.$.each(data, (key, val) => {
+		$.each(data, (key, val) => {
 			if (data.hasOwnProperty(key)) {
 				if (key !== 'file_url' && key !== 'file_thumb_url' && key !== 'image_url' && key !== 'image_thumb_url') {
 					formData.append(key, val);
