@@ -21,7 +21,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 		const type = attribute.type;
 		if (this._canSerialize(key)) {
 			let value = snapshot.attr(key);
-			if (type && value !== '_-NULL-_' && value !== '!_-NULL-_' && value !== '_-DISABLE-_')  {
+			if (!isNone(type) && value !== '_-NULL-_' && value !== '!_-NULL-_' && value !== '_-DISABLE-_')  {
 				const transform = this.transformFor(type);
 				value = transform.serialize(value, attribute.options);
 			}
@@ -45,7 +45,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 				snapshot.record.file = null;
 			}
 
-			if (!isNone(value)) {
+			if (value !== undefined) {
 				json[payloadKey] = value;
 			}
 		}
@@ -119,7 +119,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 		for(let key in data) {
 			if (data.hasOwnProperty(key)) {
-				if (!isNone(data[key])) {
+				if (data[key] !== undefined) {
 					hash[key] = data[key];
 				}
 			}
