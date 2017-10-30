@@ -7,7 +7,7 @@ import DS from 'ember-data';
 import EmberPromise, { reject } from 'rsvp';
 
 import { run, later } from '@ember/runloop';
-import { isNone } from '@ember/utils';
+import { isNone, isEmpty } from '@ember/utils';
 import { isArray } from '@ember/array';
 import { merge } from '@ember/polyfills';
 import { get, set, getWithDefault } from '@ember/object';
@@ -129,7 +129,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	_makeRequest(request, tries=0) {
 		const _req = merge({}, request);
 		return this._super(_req).catch(err => {
-			if (!isNone(get(err, 'errors'))) {
+			if (!isEmpty(get(err, 'errors'))) {
 				let error = get(err, 'errors');
 				error = isArray(error) ? error[0] : error;
 
