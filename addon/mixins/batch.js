@@ -3,7 +3,6 @@
  *
  */
 import Ember from 'ember';
-import { Assert } from 'busy-utils';
 import RPCAdapterMixin from './rpc-adapter';
 import Query from 'busy-data/utils/query';
 
@@ -42,10 +41,6 @@ const RequestStore = Ember.Object.extend({
 	 * @return {string} btoa hash
 	 */
 	checksum(url, type, query) {
-		Assert.isString(url);
-		Assert.isString(type);
-		Assert.isObject(query);
-
 		// stringify the data
 		const dataStr = window.unescape(window.encodeURIComponent(JSON.stringify(query)));
 

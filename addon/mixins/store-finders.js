@@ -9,15 +9,11 @@ import { get, set, getWithDefault } from '@ember/object';
 import { merge } from '@ember/polyfills';
 import { run } from '@ember/runloop';
 import { Promise as EmberPromise, resolve, all } from 'rsvp';
-import { DEBUG } from '@glimmer/env';
-
-
+import { runInDebug, assert } from '@ember/debug';
 import DS from 'ember-data';
-import { Assert } from 'busy-utils';
 
-const {
-	PromiseArray
-} = DS;
+/***/
+const { PromiseArray } = DS;
 
 /**
  * `StoreFinders`
@@ -53,14 +49,15 @@ export default Mixin.create({
 	},
 
 	findByIds(modelType, ids, query={}) {
+		query.deleted_on = '_-DISABLE-_';
 		return this.findWhereIn(modelType, 'id', ids, query);
 	},
 
 	findWhereIn(modelType, key, values, query={}) {
-		Assert.test('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
-		Assert.test('key must be of type string in store.findWhereIn()', typeof key === 'string');
-		Assert.test('values must be an array of strings in store.findWhereIn()', isArray(values));
-		Assert.test('query must be an object in store.findWhereIn()', typeof query === 'object');
+		assert('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
+		assert('key must be of type string in store.findWhereIn()', typeof key === 'string');
+		assert('values must be an array of strings in store.findWhereIn()', isArray(values));
+		assert('query must be an object in store.findWhereIn()', typeof query === 'object');
 
 		const _values = values.slice(0);
 		const queryList = [];
@@ -92,21 +89,18 @@ export default Mixin.create({
 	 * @param baseURL {string} Optional, Override url to the rpc client if different from the normal baseURL.
 	 * @return {EmberPromise}
 	 */
-	rpcRequest(type, method, params={}, baseURL='') {
-		Assert.funcNumArgs(arguments, 4);
-		Assert.isString(type);
-		Assert.isString(method);
-		Assert.isObject(params);
-		Assert.isString(baseURL);
+	rpcRequest(client, method, params={}, baseURL='') {
+		assert('client must be of type string in store.rpcRequest()', typeof client === 'string');
+		assert('method must be of type string in store.rpcRequest()', typeof method === 'string');
+		assert('params must be an object in store.rpcRequest()', !isNone(params) && typeof params === 'object');
+		assert('baseURL must be of type string in store.rpcRequest()', typeof baseURL === 'string');
 
 		const adapter = this._instanceCache.get('adapter');
 
-		if (!adapter.rpcRequest) {
-			throw new Error("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter");
-		} else {
-			// call the rpc method and return the promise.
-			return adapter.rpcRequest(this, type, method, params, baseURL);
-		}
+		assert("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter", !isNone(adapter.rpcRequest));
+
+		// call the rpc method and return the promise.
+		return adapter.rpcRequest(this, client, method, params, baseURL);
 	},
 
 	/**
@@ -123,8 +117,8 @@ export default Mixin.create({
 
 		let adapter = this.adapterFor(modelName);
 
-    Assert.test(`You tried to load a query but you have no adapter (for ${modelName})`, adapter);
-    Assert.test(`You tried to load a query but your adapter does not implement 'query'`, typeof adapter.query === 'function');
+    assert(`You tried to load a query but you have no adapter (for ${modelName})`, adapter);
+    assert(`You tried to load a query but your adapter does not implement 'query'`, typeof adapter.query === 'function');
 
 		// adapter.query needs the class
 		let modelClass = this.modelFor(modelName);
@@ -195,7 +189,9 @@ function _findRecords(adapter, store, modelClass, query) {
 
 function _processResults(store, recordArray, payload) {
 	let internalModels = store._push(payload);
-	Assert.test('The response to store.query is expected to be an array but it was a single record. Please wrap your response in an array or use `store.queryRecord` to query for a single record.', Array.isArray(internalModels));
+
+	assert('The response to store.query is expected to be an array but it was a single record. Please wrap your response in an array or use `store.queryRecord` to query for a single record.', Array.isArray(internalModels));
+
 	recordArray._setInternalModels(internalModels, payload);
 	return recordArray;
 }
@@ -311,10 +307,11 @@ function validateDocumentStructure(doc) {
 function normalizeResponseHelper(serializer, store, modelClass, payload, id, requestType) {
   let normalizedResponse = serializer.normalizeResponse(store, modelClass, payload, id, requestType);
   let validationErrors = [];
-  DEBUG(() => {
+  runInDebug(() => {
     validationErrors = validateDocumentStructure(normalizedResponse);
   });
-  Assert.test(`normalizeResponse must return a valid JSON API document:\n\t* ${validationErrors.join('\n\t* ')}`, isEmpty(validationErrors));
+
+	assert(`normalizeResponse must return a valid JSON API document:\n\t* ${validationErrors.join('\n\t* ')}`, isEmpty(validationErrors));
 
   return normalizedResponse;
 }
