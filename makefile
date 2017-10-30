@@ -27,6 +27,14 @@ install:
 build:
 	yarn
 
+patch:
+	npm version patch
+	npm publish --access=public
+
+minor:
+	npm version minor
+	npm publish --access=public
+
 # cleanup files and clear caches
 clean:
 ifdef NODE_FILES # remove node files
