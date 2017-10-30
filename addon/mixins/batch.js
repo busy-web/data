@@ -46,10 +46,6 @@ const RequestStore = EmberObject.extend({
 	 * @return {string} btoa hash
 	 */
 	checksum(url, type, query) {
-		Assert.isString(url);
-		Assert.isString(type);
-		Assert.isObject(query);
-
 		// stringify the data
 		const dataStr = window.unescape(window.encodeURIComponent(JSON.stringify(query)));
 

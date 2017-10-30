@@ -8,7 +8,7 @@ import { underscore, dasherize } from '@ember/string';
 import { isNone, typeOf, isEmpty } from '@ember/utils';
 import { set, get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
-import { UUID, Assert } from 'busy-utils';
+import { v4 } from 'ember-uuid';
 import query from '@busybusy/data/utils/query';
 
 /***/
@@ -25,7 +25,7 @@ const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecor
  *
  * @class JSONAPISerializer
  * @namespace BusyData.Mixin
- * @extends Ember.Mixin
+ * @extends Mixin
  */
 export default Mixin.create({
 
@@ -34,7 +34,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method normalizeResponse
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param payload {object} json data
 	 * @param requestType {string} ember data request type
@@ -69,7 +69,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method convertResponse
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param payload {object} json data
 	 * @param requestType {string} ember data request type
@@ -94,7 +94,6 @@ export default Mixin.create({
 
 		// get the meta properties as an object from the payload
 		const meta = this.getMetaFromResponse(payload, requestType);
-		Assert.isObject(meta);
 
 		// add meta data
 		set(json, 'meta', meta);
@@ -145,14 +144,12 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method flattenResponseData
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param data {object|array}
 	 * @return {object}
 	 */
 	flattenResponseData(store, primaryModelClass, json) {
-		Assert.funcNumArgs(arguments, 3, true);
-
 		// array to track included models
 		const included = [];
 		const type = primaryModelClass.modelName;
@@ -183,7 +180,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildJSON
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {object} the json object to parse
@@ -191,11 +188,6 @@ export default Mixin.create({
 	 * @return {object}
 	 */
 	buildJSON(store, primaryModelClass, type, json, included) {
-		Assert.funcNumArgs(arguments, 5, true);
-		Assert.isString(type);
-		Assert.isObject(json);
-		Assert.isArray(included);
-
 		const primaryKey = get(this, 'primaryKey');
 
 		// create a data type object
@@ -219,7 +211,7 @@ export default Mixin.create({
 						obj = this.buildNestedArray(store, primaryModelClass, i, value, included);
 					} else {
 						if (!get(value, primaryKey)) {
-							value.id = UUID.generate();
+							value.id = v4.apply(v4, arguments);
 						}
 						// get the nested model
 						obj = this.buildNested(store, primaryModelClass, i, value, included);
@@ -366,7 +358,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildNested
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {object} the json object to parse
@@ -374,11 +366,6 @@ export default Mixin.create({
 	 * @return {object}
 	 */
 	buildNested(store, primaryModelClass, type, json, included) {
-		Assert.funcNumArgs(arguments, 5, true);
-		Assert.isString(type);
-		Assert.isObject(json);
-		Assert.isArray(included);
-
 		// create the actual data model
 		const _data = this.buildJSON(store, primaryModelClass, type, json, included);
 
@@ -400,7 +387,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildNestedArray
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {array} the json object to parse
@@ -408,11 +395,6 @@ export default Mixin.create({
 	 * @return {object}
 	 */
 	buildNestedArray(store, primaryModelClass, type, json, included) {
-		Assert.funcNumArgs(arguments, 5, true);
-		Assert.isString(type);
-		Assert.isArray(json);
-		Assert.isArray(included);
-
 		const data = [];
 
 		json.forEach(item => {

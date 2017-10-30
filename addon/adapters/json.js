@@ -2,18 +2,19 @@
  * @module adapters
  *
  */
-import RSVP from 'rsvp';
+import Ember from 'ember';
 import DS from 'ember-data';
-import { dasherize } from '@ember/string';
-import { isNone } from '@ember/utils';
+import EmberPromise, { reject } from 'rsvp';
+
+import { run, later } from '@ember/runloop';
+import { isNone, isEmpty } from '@ember/utils';
 import { isArray } from '@ember/array';
 import { merge } from '@ember/polyfills';
-import { run } from '@ember/runloop';
-import { getWithDefault, set, get } from '@ember/object';
-import DataAdapterMixin from '@busybusy/data/mixins/simple-auth-data-adapter';
+import { get, set, getWithDefault } from '@ember/object';
+import { dasherize } from '@ember/string';
+
 import BusyError from '@busybusy/data/utils/error';
 import Query from '@busybusy/data/utils/query';
-import Ember from 'ember';
 
 /**
  * @class
@@ -21,13 +22,13 @@ import Ember from 'ember';
  *
  * @extends DS.JSONAPIAdapter
  */
-export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
+export default DS.JSONAPIAdapter.extend({
 	/**
 	 * sets the authorizer to use.
 	 *
 	 * This must be set to an authorizer in the main
 	 * application. like `authorizer:application` that
-	 * can extend `busy-data/authorizers/base`
+	 * can extend `@busybusy/data/authorizers/base`
 	 *
 	 * @property authorizer
 	 * @type string
@@ -127,7 +128,7 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 	_makeRequest(request, tries=0) {
 		const _req = merge({}, request);
 		return this._super(_req).catch(err => {
-			if (!isNone(get(err, 'errors'))) {
+			if (!isEmpty(get(err, 'errors'))) {
 				let error = get(err, 'errors');
 				error = isArray(error) ? error[0] : error;
 
@@ -145,13 +146,13 @@ export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
 					}
 				}
 			}
-			return RSVP.reject(err);
+			return reject(err);
 		});
 	},
 
 	_waitPromise(time=1) {
-		return new RSVP.Promise(resolve => {
-			run.later(() => {
+		return new EmberPromise(resolve => {
+			later(() => {
 				run(null, resolve, null);
 			}, time);
 		});

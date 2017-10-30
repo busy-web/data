@@ -2,53 +2,18 @@
  * @module store
  *
  */
-import RSVP from 'rsvp';
-import DS from 'ember-data';
 import Mixin from '@ember/object/mixin';
 import { isArray } from '@ember/array';
-import { isEmpty, isNone } from '@ember/utils';
+import { isNone, isEmpty } from '@ember/utils';
+import { get, set, getWithDefault } from '@ember/object';
 import { merge } from '@ember/polyfills';
-import { getWithDefault, set, get } from '@ember/object';
 import { run } from '@ember/runloop';
-import { runInDebug } from '@ember/debug';
-import { Assert } from 'busy-utils';
+import { Promise as EmberPromise, resolve, all } from 'rsvp';
+import { runInDebug, assert } from '@ember/debug';
+import DS from 'ember-data';
 
 /***/
-const MAX_PAGE_SIZE = 10;
-
-const {
-	PromiseArray
-} = DS;
-
-//const DebugHandler = Ember.Object.extend({
-//	stack: null,
-//
-//	log(...args) {
-//		if (isNone(get(this, 'stack'))) {
-//			set(this, 'stack', []);
-//		}
-//
-//		args = args.map(item => {
-//			if (!isNone(item) && typeof item === 'object') {
-//				if (isArray(item) && !item.content) {
-//					return item.slice(0);
-//				}
-//				return merge({}, item);
-//			}
-//			return item;
-//		});
-//
-//		get(this, 'stack').push(args);
-//	},
-//
-//	post() {
-//		window.console.log('\nDEBUG HANDLER', get(this, 'id'), '------------------');
-//		get(this, 'stack').forEach((args, idx) => {
-//			window.console.log(idx + 1, ...args);
-//		});
-//		window.console.log('END DEBUG HANDLER', get(this, 'id'), '---------------\n\n');
-//	}
-//});
+const { PromiseArray } = DS;
 
 /**
  * `StoreFinders`
@@ -56,7 +21,7 @@ const {
  * Mixin that adds extra find methods to the store service
  */
 export default Mixin.create({
-	_maxPageSize: MAX_PAGE_SIZE,
+	_maxPageSize: 80,
 
 	findAll(modelType, _query={}) {
 		// copy query object
@@ -84,14 +49,15 @@ export default Mixin.create({
 	},
 
 	findByIds(modelType, ids, query={}) {
+		query.deleted_on = '_-DISABLE-_';
 		return this.findWhereIn(modelType, 'id', ids, query);
 	},
 
 	findWhereIn(modelType, key, values, query={}) {
-		Assert.test('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
-		Assert.test('key must be of type string in store.findWhereIn()', typeof key === 'string');
-		Assert.test('values must be an array of strings in store.findWhereIn()', isArray(values));
-		Assert.test('query must be an object in store.findWhereIn()', typeof query === 'object');
+		assert('modelType must be of type string in store.findWhereIn()', typeof modelType === 'string');
+		assert('key must be of type string in store.findWhereIn()', typeof key === 'string');
+		assert('values must be an array of strings in store.findWhereIn()', isArray(values));
+		assert('query must be an object in store.findWhereIn()', typeof query === 'object');
 
 		const _values = values.slice(0);
 		const queryList = [];
@@ -121,23 +87,20 @@ export default Mixin.create({
 	 * @param method {string} The RPC method on the client
 	 * @param params {object} The params to send to the method
 	 * @param baseURL {string} Optional, Override url to the rpc client if different from the normal baseURL.
-	 * @return {RSVP.Promise}
+	 * @return {EmberPromise}
 	 */
-	rpcRequest(type, method, params={}, baseURL='') {
-		Assert.funcNumArgs(arguments, 4);
-		Assert.isString(type);
-		Assert.isString(method);
-		Assert.isObject(params);
-		Assert.isString(baseURL);
+	rpcRequest(client, method, params={}, baseURL='') {
+		assert('client must be of type string in store.rpcRequest()', typeof client === 'string');
+		assert('method must be of type string in store.rpcRequest()', typeof method === 'string');
+		assert('params must be an object in store.rpcRequest()', !isNone(params) && typeof params === 'object');
+		assert('baseURL must be of type string in store.rpcRequest()', typeof baseURL === 'string');
 
 		const adapter = this._instanceCache.get('adapter');
 
-		if (!adapter.rpcRequest) {
-			throw new Error("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter");
-		} else {
-			// call the rpc method and return the promise.
-			return adapter.rpcRequest(this, type, method, params, baseURL);
-		}
+		assert("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter", !isNone(adapter.rpcRequest));
+
+		// call the rpc method and return the promise.
+		return adapter.rpcRequest(this, client, method, params, baseURL);
 	},
 
 	/**
@@ -154,8 +117,8 @@ export default Mixin.create({
 
 		let adapter = this.adapterFor(modelName);
 
-    Assert.test(`You tried to load a query but you have no adapter (for ${modelName})`, adapter);
-    Assert.test(`You tried to load a query but your adapter does not implement 'query'`, typeof adapter.query === 'function');
+    assert(`You tried to load a query but you have no adapter (for ${modelName})`, adapter);
+    assert(`You tried to load a query but your adapter does not implement 'query'`, typeof adapter.query === 'function');
 
 		// adapter.query needs the class
 		let modelClass = this.modelFor(modelName);
@@ -175,7 +138,7 @@ export default Mixin.create({
 function _findRecordQueue(adapter, store, modelClass, queryObjects) {
 	// no queryObjects then return a default jsonapi response
 	if (queryObjects.length <= 0) {
-		return RSVP.resolve({
+		return resolve({
 			data: [],
 			included: [],
 			jsonapi: { version: '1.0' },
@@ -183,13 +146,13 @@ function _findRecordQueue(adapter, store, modelClass, queryObjects) {
 		});
 	}
 
-	return new RSVP.Promise((resolve, reject) => {
+	return new EmberPromise((resolve, reject) => {
 		const promises = [];
 		// call _findRecords on each query object
 		queryObjects.forEach(query => promises.push(_findRecords(adapter, store, modelClass, query)));
 
 		// parse the results of all calls an merge them into one result
-		RSVP.all(promises).then(results => _mergeRecords(results))
+		all(promises).then(results => _mergeRecords(results))
 			.then(records => get(records, 'errors') ? run(null, reject, records) : run(null, resolve, records))
 			.catch(err => run(null, reject, err));
 	});
@@ -213,7 +176,7 @@ function _findRecords(adapter, store, modelClass, query) {
   let promise = adapter.query(store, modelClass, query);
   let label = `DS: Handle Adapter#query of ${modelClass}`;
 
-  promise = RSVP.Promise.resolve(promise, label);
+  promise = EmberPromise.resolve(promise, label);
   promise = _guard(promise, _bind(_objectIsAlive, store));
 
   return promise.then(adapterPayload => {
@@ -226,7 +189,9 @@ function _findRecords(adapter, store, modelClass, query) {
 
 function _processResults(store, recordArray, payload) {
 	let internalModels = store._push(payload);
-	Assert.test('The response to store.query is expected to be an array but it was a single record. Please wrap your response in an array or use `store.queryRecord` to query for a single record.', Array.isArray(internalModels));
+
+	assert('The response to store.query is expected to be an array but it was a single record. Please wrap your response in an array or use `store.queryRecord` to query for a single record.', Array.isArray(internalModels));
+
 	recordArray._setInternalModels(internalModels, payload);
 	return recordArray;
 }
@@ -345,7 +310,8 @@ function normalizeResponseHelper(serializer, store, modelClass, payload, id, req
   runInDebug(() => {
     validationErrors = validateDocumentStructure(normalizedResponse);
   });
-  Assert.test(`normalizeResponse must return a valid JSON API document:\n\t* ${validationErrors.join('\n\t* ')}`, isEmpty(validationErrors));
+
+	assert(`normalizeResponse must return a valid JSON API document:\n\t* ${validationErrors.join('\n\t* ')}`, isEmpty(validationErrors));
 
   return normalizedResponse;
 }
@@ -392,7 +358,7 @@ function nextParams(model, query, lastQuery) {
 
 //function _findWhereIn(store, modelType, queryList, query) {
 //	if (queryList.length === 0) {
-//		return RSVP.resolve([]);
+//		return resolve([]);
 //	}
 //
 //	// get next query params
