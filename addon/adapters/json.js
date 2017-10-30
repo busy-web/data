@@ -13,7 +13,6 @@ import { merge } from '@ember/polyfills';
 import { get, set, getWithDefault } from '@ember/object';
 import { dasherize } from '@ember/string';
 
-import DataAdapterMixin from 'busy-data/mixins/simple-auth-data-adapter';
 import BusyError from 'busy-data/utils/error';
 import Query from 'busy-data/utils/query';
 
@@ -23,7 +22,7 @@ import Query from 'busy-data/utils/query';
  *
  * @extends DS.JSONAPIAdapter
  */
-export default DS.JSONAPIAdapter.extend(DataAdapterMixin, {
+export default DS.JSONAPIAdapter.extend({
 	/**
 	 * sets the authorizer to use.
 	 *
