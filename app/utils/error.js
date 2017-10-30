@@ -1,1 +1,1 @@
-export { default } from 'busy-data/utils/error';
+export { default } from '@busybusy/data/utils/error';

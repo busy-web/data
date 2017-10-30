@@ -1,5 +1,5 @@
 import EmberObject from '@ember/object';
-import StoreFindersMixin from 'busy-data/mixins/store-finders';
+import StoreFindersMixin from '@busybusy/data/mixins/store-finders';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | store finders');

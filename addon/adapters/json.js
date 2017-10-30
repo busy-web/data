@@ -11,8 +11,8 @@ import { isArray } from '@ember/array';
 import { merge } from '@ember/polyfills';
 import { get, set, getWithDefault } from '@ember/object';
 import { dasherize } from '@ember/string';
-import BusyError from 'busy-data/utils/error';
-import Query from 'busy-data/utils/query';
+import ErrorUtil from '@busybusy/data/utils/error';
+import QueryUtil from '@busybusy/data/utils/query';
 
 /**
  * @class
@@ -26,7 +26,7 @@ export default DS.JSONAPIAdapter.extend({
 	 *
 	 * This must be set to an authorizer in the main
 	 * application. like `authorizer:application` that
-	 * can extend `busy-data/authorizers/base`
+	 * can extend `@busybusy/data/authorizers/base`
 	 *
 	 * @property authorizer
 	 * @type string
@@ -51,7 +51,7 @@ export default DS.JSONAPIAdapter.extend({
 	normalizeErrorResponse(status, headers, payload) {
 		const title = `Api Error: ${headers.method} - ${headers.url}`;
     if (payload && typeof payload === 'object') {
-			return BusyError.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
+			return ErrorUtil.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
     } else {
       return [
         {
@@ -212,9 +212,9 @@ export default DS.JSONAPIAdapter.extend({
 
 	_addUrlParams(url, type) {
 		let [ host, params ] = url.split('?');
-		params = Query.parse(params);
+		params = QueryUtil.parse(params);
 		this.addUrlParams(params, type);
-		url =	host + '?' + Query.stringify(params);
+		url =	host + '?' + QueryUtil.stringify(params);
 		return url;
 	}
 });

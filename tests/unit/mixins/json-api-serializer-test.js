@@ -1,5 +1,5 @@
 import EmberObject from '@ember/object';
-import JsonApiSerializerMixin from 'busy-data/mixins/json-api-serializer';
+import JsonApiSerializerMixin from '@busybusy/data/mixins/json-api-serializer';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | json api serializer');

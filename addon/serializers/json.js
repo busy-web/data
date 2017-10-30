@@ -7,7 +7,7 @@ import { get, getWithDefault } from '@ember/object';
 import { underscore } from '@ember/string';
 import { isNone } from '@ember/utils';
 import { v4 } from 'ember-uuid';
-import JsonApiSerializerMixin from 'busy-data/mixins/json-api-serializer';
+import JsonApiSerializerMixin from '@busybusy/data/mixins/json-api-serializer';
 
 /**
  * `BusyData/Serializers/Json`
