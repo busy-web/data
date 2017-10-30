@@ -5,14 +5,12 @@
 import Ember from 'ember';
 import DS from 'ember-data';
 import EmberPromise, { reject } from 'rsvp';
-
 import { run, later } from '@ember/runloop';
 import { isNone, isEmpty } from '@ember/utils';
 import { isArray } from '@ember/array';
 import { merge } from '@ember/polyfills';
 import { get, set, getWithDefault } from '@ember/object';
 import { dasherize } from '@ember/string';
-
 import BusyError from 'busy-data/utils/error';
 import Query from 'busy-data/utils/query';
 

@@ -2,12 +2,12 @@
  * @module Serializers
  *
  */
+import DS from 'ember-data';
 import { get, getWithDefault } from '@ember/object';
 import { underscore } from '@ember/string';
 import { isNone } from '@ember/utils';
-import DS from 'ember-data';
-import JSONAPIMixin from 'busy-data/mixins/json-api-serializer';
 import { v4 } from 'ember-uuid';
+import JsonApiSerializerMixin from 'busy-data/mixins/json-api-serializer';
 
 /**
  * `BusyData/Serializers/Json`
@@ -16,7 +16,7 @@ import { v4 } from 'ember-uuid';
  * @namespace BusyData.Serializers
  * @extends DS.JSONAPISerializer
  */
-export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
+export default DS.JSONAPISerializer.extend(JsonApiSerializerMixin, {
 	serializeAttribute(snapshot, json, key, attribute) {
 		const type = attribute.type;
 		if (this._canSerialize(key)) {

@@ -2,12 +2,12 @@
  * @module Mixins
  *
  */
-import Ember from 'ember';
+import Mixin from '@ember/object/mixin';
+import { assert } from '@ember/debug';
+import { isPresent } from '@ember/utils';
 import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';
 
-const { assert, isPresent } = Ember;
-
-export default Ember.Mixin.create(DataAdapterMixin, {
+export default Mixin.create(DataAdapterMixin, {
   /**
 	 * Overrides ember simple auth to support ds-improved-ajax calls
 	 *

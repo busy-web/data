@@ -387,7 +387,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildNestedArray
-	 * @param store {Storer
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {array} the json object to parse
