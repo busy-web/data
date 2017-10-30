@@ -9,7 +9,7 @@ import Mixin from '@ember/object/mixin';
  *
  * @class RpcModel
  * @namespace BusyData.Mixins
- * @extends Ember.Mixin
+ * @extends Mixin
  */
 export default Mixin.create({
 	/**
