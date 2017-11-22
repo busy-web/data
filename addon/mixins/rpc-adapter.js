@@ -2,7 +2,7 @@
  * @module Mixins
  */
 import Ember from 'ember';
-//import { isArray, A } from '@ember/array';
+import { isArray, A } from '@ember/array';
 import { assert } from '@ember/debug';
 import { isNone, isEmpty } from '@ember/utils';
 import EmberObject, { get } from '@ember/object';
@@ -24,14 +24,14 @@ export default Mixin.create({
 	 */
 	query(store, type, query) {
 		if (type.proto()._isRPC) {
-			return this.queryRPC(store, type, query);
-		} else {
-			return this._super(...arguments).then(data => {
-				//if(!isArray(data.data)) {
-				//	data.data = A([data.data]);
-				//}
+			return this.queryRPC(store, type, query).then(data => {
+				if(!isArray(data.data)) {
+					data.data = A([data.data]);
+				}
 				return data;
 			});
+		} else {
+			return this._super(...arguments);
 		}
 	},
 
