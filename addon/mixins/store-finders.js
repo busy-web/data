@@ -37,8 +37,9 @@ export default Mixin.create({
 			let nextQuery = {};
 			if (nextParams(models, nextQuery, query)) {
 				return this.findAll(modelType, nextQuery).then(moreModels => {
-					if (isObject(moreModels) && !isEmpty(get(moreModels, 'content'))) {
-						models.pushObjects(get(moreModels, 'content'));
+					if (moreModels && get(moreModels, 'length') > 0) {
+						let mArray = moreModels.toArray().map(item => get(item, '_internalModel') || item);
+						models.pushObjects(mArray);
 					}
 					return models;
 				});
@@ -316,10 +317,6 @@ function normalizeResponseHelper(serializer, store, modelClass, payload, id, req
   return normalizedResponse;
 }
 
-function isObject(value) {
-	return !isNone(value) && typeof value === 'object' && value.length === undefined;
-}
-
 function nextParams(model, query, lastQuery) {
 	let isJsonApi = false;
 	let next = get(model, 'meta.next');
@@ -370,7 +367,7 @@ function nextParams(model, query, lastQuery) {
 //	// find all models
 //	return store.findAll(modelType, params).then((model) => {
 //		return _findWhereIn(store, modelType, queryList, query).then((moreModels) => {
-//			if (isObject(moreModels) && !isEmpty(get(moreModels, 'content'))) {
+//			if (moreModels && !isEmpty(get(moreModels, 'content'))) {
 //				return model.pushObjects(get(moreModels, 'content'));
 //			}
 //			return model;
