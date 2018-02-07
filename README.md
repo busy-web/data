@@ -7,6 +7,8 @@
 [![Test Coverage](https://codeclimate.com/github/busybusy/webapp-busy-data/badges/coverage.svg)](https://codeclimate.com/github/busybusy/webapp-busy-data/coverage)
 [![Issue Count](https://codeclimate.com/github/busybusy/webapp-busy-data/badges/issue_count.svg)](https://codeclimate.com/github/busybusy/webapp-busy-data)
 
+WARNING: This Package is deprecated! Please use @busy-web/data going forward.
+
 busy data is a wrapper around ember data to support rest api calls to a php json response server.
 
 ## Installation
