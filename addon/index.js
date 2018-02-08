@@ -1,5 +1,5 @@
 
-import JsonApiAdapter from '@busybusy/data/adapters/json';
+import JsonApiAdapter from '@busy-web/data/adapters/json';
 
 import JsonApiSerializer from './serializers/json';
 

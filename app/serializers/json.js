@@ -1,1 +1,1 @@
-export { default } from '@busybusy/data/serializers/json';
+export { default } from '@busy-web/data/serializers/json';

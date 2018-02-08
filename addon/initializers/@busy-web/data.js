@@ -4,10 +4,10 @@
  */
 import DS from 'ember-data';
 import { get } from '@ember/object';
-import RPCModelMixin from '@busybusy/data/mixins/rpc-model';
+import RPCModelMixin from '@busy-web/data/mixins/rpc-model';
 
 export default {
-	name: '@busybusy/data',
+	name: '@busy-web/data',
 
 	initialize(/*registry*/) {
 		DS.RPCModel = DS.Model.extend(RPCModelMixin, {});

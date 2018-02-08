@@ -9,7 +9,7 @@ import { isNone, typeOf, isEmpty } from '@ember/utils';
 import { set, get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 import { v4 } from 'ember-uuid';
-import query from '@busybusy/data/utils/query';
+import query from '@busy-web/data/utils/query';
 
 /***/
 const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord', 'findBelongsTo'];

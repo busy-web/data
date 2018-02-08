@@ -1,10 +1,10 @@
 {
-  "name": "@busybusy/data",
+  "name": "@busy-web/data",
   "version": "2.16.6",
   "description": "The default blueprint for ember-cli addons.",
   "keywords": [
     "ember-addon",
-    "busybusy"
+    "busy-web"
   ],
   "license": "UNLICENSED",
   "author": "busy inc.",
@@ -12,7 +12,7 @@
     "doc": "doc",
     "test": "tests"
   },
-  "repository": "git@github.com:busybusy/webapp-busy-data.git",
+  "repository": "git@github.com:busy-web/data.git",
   "scripts": {
     "build": "ember build",
     "start": "ember server",

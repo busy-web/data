@@ -11,8 +11,8 @@ import { isArray } from '@ember/array';
 import { merge } from '@ember/polyfills';
 import { get, set, getWithDefault } from '@ember/object';
 import { dasherize } from '@ember/string';
-import ErrorUtil from '@busybusy/data/utils/error';
-import QueryUtil from '@busybusy/data/utils/query';
+import ErrorUtil from '@busy-web/data/utils/error';
+import QueryUtil from '@busy-web/data/utils/query';
 
 /**
  * @class
@@ -26,7 +26,7 @@ export default DS.JSONAPIAdapter.extend({
 	 *
 	 * This must be set to an authorizer in the main
 	 * application. like `authorizer:application` that
-	 * can extend `@busybusy/data/authorizers/base`
+	 * can extend `@busy-web/data/authorizers/base`
 	 *
 	 * @property authorizer
 	 * @type string

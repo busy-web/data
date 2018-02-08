@@ -10,8 +10,8 @@ import { isEmpty } from '@ember/utils';
 import EmberObject, { set, get } from '@ember/object';
 import { run } from '@ember/runloop';
 import { merge } from '@ember/polyfills';
-import RPCAdapterMixin from '@busybusy/data/mixins/rpc-adapter';
-import Query from '@busybusy/data/utils/query';
+import RPCAdapterMixin from '@busy-web/data/mixins/rpc-adapter';
+import Query from '@busy-web/data/utils/query';
 
 const RequestStore = EmberObject.extend({
 	//_maxPageSize: 30,

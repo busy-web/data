@@ -1,1 +1,1 @@
-export { default } from '@busybusy/data/utils/query';
+export { default } from '@busy-web/data/utils/query';

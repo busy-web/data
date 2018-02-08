@@ -1,5 +1,5 @@
 import EmberObject from '@ember/object';
-import RpcAdapterMixin from '@busybusy/data/mixins/rpc-adapter';
+import RpcAdapterMixin from '@busy-web/data/mixins/rpc-adapter';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | rpc adapter');

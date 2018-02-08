@@ -1,5 +1,5 @@
 import EmberObject from '@ember/object';
-import ImageAdapterMixin from '@busybusy/data/mixins/image-adapter';
+import ImageAdapterMixin from '@busy-web/data/mixins/image-adapter';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | image adapter');

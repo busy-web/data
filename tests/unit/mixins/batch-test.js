@@ -1,5 +1,5 @@
 import EmberObject from '@ember/object';
-import BatchMixin from '@busybusy/data/mixins/batch';
+import BatchMixin from '@busy-web/data/mixins/batch';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | batch');
