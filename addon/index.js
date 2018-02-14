@@ -1,69 +1,31 @@
-/**
- * default busy-data import
- */
-import { merge } from '@ember/polyfills';
-import { get } from '@ember/object';
-import DS from 'ember-data';
+
+import JsonApiAdapter from '@busybusy/data/adapters/json';
+
+import JsonApiSerializer from './serializers/json';
+
+import ErrorUtil from './utils/error';
+import QueryUtil from './utils/query';
+
+import JsonApiSerializerMixin from './mixins/json-api-serializer';
+import BatchAdapterMixin from './mixins/batch';
+import ImageAdapterMixin from './mixins/image-adapter';
+import RPCAdapterMixin from './mixins/rpc-adapter';
+import SimpleAuthDataAdapterMixin from './mixins/simple-auth-data-adapter';
 import RPCModelMixin from './mixins/rpc-model';
+import StoreMixin from './mixins/store-finders';
 
-DS.Model.reopen({
-	reloadAll() {
-		return this.reload().then(model => {
-			this.reloadRelationships();
-			return model;
-		});
-	},
+export {
+	JsonApiAdapter,
+	JsonApiSerializer,
 
-	reloadRelationships() {
-		this.eachRelationship(name => {
-			const model = this.get(name);
-			if (model.reload) {
-				model.reload();
-			} else {
-				model.get('content');
-				if (model.reload) {
-					model.reload();
-				}
-			}
-		});
-	}
-});
+	JsonApiSerializerMixin,
+	BatchAdapterMixin,
+	ImageAdapterMixin,
+	RPCAdapterMixin,
+	SimpleAuthDataAdapterMixin,
+	RPCModelMixin,
+	StoreMixin,
 
-DS.Model.reopenClass({
-	eachRelationship(callback, binding) {
-		get(this, 'relationshipsByName').forEach(function(relationship, name) {
-			if (relationship.options.modelName !== relationship.type) {
-				relationship.type = relationship.options.modelName;
-			}
-			callback.call(binding, name, relationship);
-		});
-	},
-
-	typeForRelationship(name, store) {
-		var relationship = get(this, 'relationshipsByName').get(name);
-		if (relationship.options.modelName !== relationship.type) {
-			relationship.type = relationship.options.modelName;
-		}
-		return relationship && store.modelFor(relationship.type);
-	},
-});
-
-const belongsTo = DS.belongsTo;
-
-DS.belongsTo = function(modelName, options={}) {
-	options.modelName = modelName;
-	return belongsTo(modelName, options);
+	ErrorUtil,
+	QueryUtil,
 };
-
-const hasMany = DS.hasMany;
-
-DS.hasMany = function(modelName, options={}) {
-	options.modelName = modelName;
-	return hasMany(modelName, options);
-};
-
-const BS = merge({}, DS);
-
-BS.RPCModel = DS.Model.extend(RPCModelMixin, {});
-export default BS;
-

@@ -3,11 +3,13 @@
  *
  */
 import { isArray } from '@ember/array';
+import { merge } from '@ember/polyfills';
 import { underscore, dasherize } from '@ember/string';
 import { isNone, typeOf, isEmpty } from '@ember/utils';
 import { set, get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 import { v4 } from 'ember-uuid';
+import query from '@busybusy/data/utils/query';
 
 /***/
 const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecord', 'findBelongsTo'];
@@ -23,7 +25,7 @@ const singleRequest = ['findRecord', 'queryRecord', 'updateRecord', 'createRecor
  *
  * @class JSONAPISerializer
  * @namespace BusyData.Mixin
- * @extends Ember.Mixin
+ * @extends Mixin
  */
 export default Mixin.create({
 
@@ -32,7 +34,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method normalizeResponse
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param payload {object} json data
 	 * @param requestType {string} ember data request type
@@ -67,7 +69,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method convertResponse
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param payload {object} json data
 	 * @param requestType {string} ember data request type
@@ -142,7 +144,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method flattenResponseData
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param primaryModelClass {DS.Model}
 	 * @param data {object|array}
 	 * @return {object}
@@ -178,7 +180,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildJSON
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {object} the json object to parse
@@ -279,7 +281,14 @@ export default Mixin.create({
 				// create data object
 				let link = '';
 				if (!isNone(opts.options.query)) {
-					link += this.buildQueryParams(json, opts.options.query);
+					const queryParams = merge({}, opts.options.query);
+					if (this.validateQuery(json, queryParams)) {
+						link += query.stringify(queryParams);
+
+						if (opts.kind === 'belongsTo') {
+							link += `&page_size=1`;
+						}
+					}
 				}
 
 				if (!isNone(id)) {
@@ -288,15 +297,15 @@ export default Mixin.create({
 					link += `&${key}=${id}`;
 				}
 
-				if (opts.kind === 'belongsTo') {
-					link += `&page_size=1`;
-				}
-
 				if (!isEmpty(link)) {
-					link = link.replace(/^&/, '?');
+					link = '?' + link.replace(/^&/, '');
 					relationship.links = { related: `/${opts.type}${link}` };
 				} else {
-					relationship.data = [];
+					if (opts.kind === 'belongsTo') {
+						relationship.data = null;
+					} else {
+						relationship.data = [];
+					}
 				}
 
 				data[dasherize(opts.key)] = relationship;
@@ -306,29 +315,26 @@ export default Mixin.create({
 		return data;
 	},
 
-	buildQueryParams(json, query={}, str='') {
-		let link = '';
+	validateQuery(json, query) {
+		let isvalid = true;
 		Object.keys(query).forEach(key => {
 			let value = get(query, key);
-
-			if (!isEmpty(str)) {
-				key = `${str}[${key}]`;
-			}
-
-			if (isArray(value)) {
-				value.forEach(val => link += `&${key}[]=${val}`);
-			} else if (!isNone(value) && typeof value === 'object') {
-				link += this.buildQueryParams(json, value, key);
+			if (!isNone(value) && !isArray(value) && typeof value === 'object') {
+				this.validateQuery(json, value);
+				set(query, key, value);
 			} else {
 				if (/^self/.test(value)) {
-					value = underscore(value.replace(/^self\./, ''));
+					value = this.keyForAttribute(value.replace(/^self\./, ''));
 					value = get(json, value);
+					if (value !== undefined) {
+						set(query, key, value);
+					} else {
+						isvalid = false;
+					}
 				}
-
-				link += `&${key}=${value}`;
 			}
 		});
-		return link;
+		return isvalid;
 	},
 
 	getModelReturnType(store, primaryModelClass, attr) {
@@ -352,7 +358,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildNested
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {object} the json object to parse
@@ -381,7 +387,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method buildNestedArray
-	 * @param store {Ember.Store}
+	 * @param store {Store}
 	 * @param modelName {string}
 	 * @param type {string} the model type
 	 * @param json {array} the json object to parse

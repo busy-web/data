@@ -2,10 +2,11 @@
  * @module Mixins
  *
  */
-import { later } from '@ember/runloop';
 import $ from 'jquery';
+import { later } from '@ember/runloop';
+import { merge } from '@ember/polyfills';
 import { isNone } from '@ember/utils';
-import { get } from '@ember/object';
+import { get, set } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 
 /**
@@ -13,7 +14,7 @@ import Mixin from '@ember/object/mixin';
  *
  * @class ImageAdapter
  * @namespace BusyData.Mixins
- * @extends Ember.Mixin
+ * @extends Mixin
  */
 export default Mixin.create({
 	/**
@@ -26,36 +27,35 @@ export default Mixin.create({
 	 * @param options {object} data options
 	 * @returns {object} ajax call object
 	 */
-	ajaxOptions(url, type, options={}) {
-		// get a file object if it exists.
-		const fileObject = get(options, 'data._fileObject');
+	ajaxOptions(url, type, options) {
+		options = options || {};
 
-		// if the fileObject exists then change the type to GET to avoid
-		// ember data changing the data structure.
-		let _type = type;
-		if (!isNone(fileObject)) {
-			_type = 'GET';
-			options.isUpload = true;
-		}
+		const data = merge({}, get(options, 'data'));
+		const isFile = !isNone(get(options, 'data._fileObject'));
+		const hash = this._super(...arguments);
 
-		// let ember data add ajaxOptions
-		const hash = this._super(url, _type, options);
-
-		// if type was changed then reset type
-		// to what it was meant to be.
-		if (_type !== type) {
-			hash.type = type;
-			delete hash.isUpload;
-		}
-
-		// set up the content type and data object
-		//
-		// if _fileObject is set then set up a file upload
-		// else if type is post set up POST content and data object
-		// otherwise the data and content are left alone
-		if (!isNone(fileObject)) {
+		if (isFile) {
+			set(hash, 'data', data);
 			this.setupUpload(hash);
 		}
+
+		return hash;
+	},
+
+	_requestToJQueryAjaxHash(request) {
+		request = request || {};
+
+		const isFile = !isNone(get(request, 'data._fileObject'));
+		if (isFile) {
+			request.headers.Accept = 'application/json; charset=utf-8';
+		}
+
+		const hash = this._super(request) || {};
+
+		if (isFile) {
+			this.setupUpload(hash);
+		}
+
 		return hash;
 	},
 
@@ -64,7 +64,7 @@ export default Mixin.create({
 	 *
 	 * @private
 	 * @method setupUpload
-	 * @param hash {object}
+	 * @params hash {object}
 	 * @returns {object}
 	 */
 	setupUpload(hash) {
@@ -72,7 +72,7 @@ export default Mixin.create({
 		// that was created in the serializer.serializeIntoHash
 		// The fileObject has event listeners for uploadStart,
 		// uploadProgress and uploadComplete
-		const fileObject = hash.data._fileObject;
+		const fileObject = get(hash, 'data._fileObject');
 		fileObject.uploadStart();
 
 		// set the ajax complete function to trigger
@@ -86,34 +86,34 @@ export default Mixin.create({
 		delete hash.data._fileObject;
 
 		// convert the hash.data to a formData object
-		hash.data = this.convertDataForUpload(hash.data);
+		set(hash, 'data', this.convertDataForUpload(hash.data));
 
 		// set contentType and processData to false
 		// for file uploads
-		hash.contentType = false;
-		hash.processData = false;
+		set(hash, 'contentType', false);
+		set(hash, 'processData', false);
 
 		// dont allow batch call
-		hash.disableBatch = true;
+		set(hash, 'disableBatch', true);
 
 		// set the xhr function to report
 		// upload progress
-		hash.xhr = () => {
-			var xhr = $.ajaxSettings.xhr();
-			xhr.upload.onprogress = (e) => {
+		set(hash, 'xhr', () => {
+			const xhr = $.ajaxSettings.xhr();
+			set(xhr, 'upload.onprogress', (e) => {
 				later(this, function() {
 					fileObject.uploadProgress(e);
 				}, 100);
-			};
+			});
 			return xhr;
-		};
+		});
 	},
 
 	/**
 	 * converts data object into a formdata object
 	 *
 	 * @method convertDataForUpload
-	 * @param data {object}
+	 * @params data {object}
 	 * @returns {object}
 	 */
 	convertDataForUpload(data) {

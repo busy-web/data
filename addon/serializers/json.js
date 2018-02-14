@@ -2,12 +2,12 @@
  * @module Serializers
  *
  */
+import DS from 'ember-data';
 import { get, getWithDefault } from '@ember/object';
 import { underscore } from '@ember/string';
 import { isNone } from '@ember/utils';
-import DS from 'ember-data';
-import JSONAPIMixin from 'busy-data/mixins/json-api-serializer';
 import { v4 } from 'ember-uuid';
+import JsonApiSerializerMixin from '@busybusy/data/mixins/json-api-serializer';
 
 /**
  * `BusyData/Serializers/Json`
@@ -16,25 +16,18 @@ import { v4 } from 'ember-uuid';
  * @namespace BusyData.Serializers
  * @extends DS.JSONAPISerializer
  */
-export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
+export default DS.JSONAPISerializer.extend(JsonApiSerializerMixin, {
 	serializeAttribute(snapshot, json, key, attribute) {
 		const type = attribute.type;
 		if (this._canSerialize(key)) {
 			let value = snapshot.attr(key);
-			if (type && value !== '_-NULL-_' && value !== '!_-NULL-_' && value !== '_-DISABLE-_')  {
+			if (!isNone(type) && value !== undefined && value !== '_-NULL-_' && value !== '!_-NULL-_' && value !== '_-DISABLE-_')  {
 				const transform = this.transformFor(type);
 				value = transform.serialize(value, attribute.options);
 			}
 
-			// if provided, use the mapping provided by `attrs` in
-			// the serializer
-			let payloadKey =  this._getMappedKey(key, snapshot.type);
-			if (payloadKey === key && this.keyForAttribute) {
-				payloadKey = this.keyForAttribute(key, 'serialize');
-			}
-
 			if (key === 'createdOn' && isNone(value)) {
-				value = (new Date()).valueOf()/1000;
+				value = parseInt(Date.now() / 1000, 10);
 			}
 
 			if (!isNone(value) && value.hasOwnProperty('file') && (value.file instanceof File || value.file instanceof Blob)) {
@@ -45,7 +38,14 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 				snapshot.record.file = null;
 			}
 
-			if (!isNone(value)) {
+			if (value !== undefined) {
+				// if provided, use the mapping provided by `attrs` in
+				// the serializer
+				let payloadKey =  this._getMappedKey(key, snapshot.type);
+				if (payloadKey === key && this.keyForAttribute) {
+					payloadKey = this.keyForAttribute(key, 'serialize');
+				}
+
 				json[payloadKey] = value;
 			}
 		}
@@ -119,7 +119,7 @@ export default DS.JSONAPISerializer.extend(JSONAPIMixin, {
 
 		for(let key in data) {
 			if (data.hasOwnProperty(key)) {
-				if (!isNone(data[key])) {
+				if (data[key] !== undefined) {
 					hash[key] = data[key];
 				}
 			}

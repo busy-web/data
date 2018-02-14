@@ -1,7 +1,11 @@
 /**
  * @module Mixins
  */
+import Ember from 'ember';
 import { isArray, A } from '@ember/array';
+import { assert } from '@ember/debug';
+import { isNone, isEmpty } from '@ember/utils';
+import EmberObject, { get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 
 /**
@@ -9,7 +13,7 @@ import Mixin from '@ember/object/mixin';
  *
  * @class RpcAdapter
  * @namespace BusyData.Mixins
- * @extends Ember.Mixin
+ * @extends Mixin
  */
 export default Mixin.create({
 	/**
@@ -20,7 +24,12 @@ export default Mixin.create({
 	 */
 	query(store, type, query) {
 		if (type.proto()._isRPC) {
-			return this.queryRPC(store, type, query);
+			return this.queryRPC(store, type, query).then(data => {
+				if(!isArray(data.data)) {
+					data.data = A([data.data]);
+				}
+				return data;
+			});
 		} else {
 			return this._super(...arguments);
 		}
@@ -34,29 +43,125 @@ export default Mixin.create({
 	 * @param store {DS.Store}
 	 * @param type {DS.ModelType}
 	 * @param query {object}
-	 * @return {Ember.RSVP.Promise}
+	 * @return {RSVP.Promise}
 	 */
 	queryRPC(store, type, query) {
-		const url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
-		if (this.sortQueryParams) {
-			query = this.sortQueryParams(query);
+		let promise;
+		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
+			const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
+			promise = this._makeRequest(request);
+		} else {
+			let _requestType = 'rpc'
+      let url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
+
+			query = this.dataForRequest({ type, _requestType, query });
+
+      if (this.sortQueryParams) {
+        query = this.sortQueryParams(query);
+      }
+
+      promise = this.ajax(url, 'POST', { _requestType, data: query });
 		}
 
-		const method = type.proto()._methodName;
+		return promise;
+	},
 
-		const hash = {
-			method,
-			params: query,
-			id: 1,
-			jsonrpc: '2.0'
-		};
+	rpcRequest(store, modelName, method, query={}, host) {
+		const type = EmberObject.extend({
+			_methodName: method,
+			_clientName: modelName,
+			_hostName: host
+		}).reopenClass({ modelName });
 
-		return this.ajax(url, 'GET', { disableBatch: true, data: JSON.stringify(hash) }).then(data => {
-			data = data.result;
-			if(!isArray(data.data)) {
-				data.data = A([data.data]);
+		return this.queryRPC(store, type, query);
+	},
+
+	ajaxOptions(url, type, options) {
+		const isRPC = get(options || {}, '_requestType') === 'rpc';
+		const hash = this._super(...arguments);
+
+		if (isRPC) {
+			hash.data = JSON.stringify(hash.data);
+      hash.contentType = 'application/json; charset=utf-8';
+			hash.disableBatch = true;
+		}
+
+		return hash;
+	},
+
+	dataForRequest(params) {
+		if (params._requestType === 'rpc') {
+			const method = params.type.proto()._methodName;
+			assert('The rpc model has no _methodName to call.', !isNone(method));
+
+			return {
+				method,
+				params: params.query,
+				id: 1,
+				jsonrpc: '2.0'
+			};
+		}
+		return this._super(params);
+	},
+
+	headersForRequest(params) {
+		const headers = this._super(params);
+		if (params._requestType === 'rpc') {
+			headers.Accept = 'application/json; charset=utf-8';
+		}
+		return headers;
+	},
+
+	methodForRequest(params) {
+		if (params._requestType === 'rpc') {
+			return "POST";
+		}
+		return this._super(params);
+	},
+
+	urlForRequest(params) {
+		let url = this._super(params);
+		if (params._requestType === 'rpc') {
+			const client = params.type.proto()._clientName;
+			if (params.type.modelName !== client) {
+				const regx = new RegExp(params.type.modelName);
+				url = url.replace(regx, client);
 			}
-			return data;
-		});
+
+			const host = params.type.proto()._hostName;
+			if (!isEmpty(host) && get(this, 'host') !== host) {
+				const regx = new RegExp(get(this, 'host'));
+				url = url.replace(regx, host);
+			}
+		}
+		return url;
+	},
+
+	_requestFor(params) {
+		const res = this._super(params);
+		if (params._requestType === 'rpc') {
+			res._requestType = 'rpc';
+		}
+		return res;
+	},
+
+	_requestToJQueryAjaxHash(request) {
+		let hash = this._super(request) || {};
+
+		if (request._requestType === 'rpc') {
+      hash.contentType = 'application/json; charset=utf-8';
+      hash.data = JSON.stringify(request.data);
+			hash.dataType = "json";
+			hash.disableBatch = true;
+		}
+
+		return hash;
+	},
+
+  handleResponse(status, headers, payload, requestData) {
+		if (payload && typeof payload === 'object' && get(payload, 'jsonrpc')) {
+			payload = get(payload, 'result');
+		}
+		return this._super(status, headers, payload, requestData);
 	}
 });
