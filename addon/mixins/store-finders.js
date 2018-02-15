@@ -96,7 +96,13 @@ export default Mixin.create({
 		assert('params must be an object in store.rpcRequest()', !isNone(params) && typeof params === 'object');
 		assert('baseURL must be of type string in store.rpcRequest()', typeof baseURL === 'string');
 
-		const adapter = this._instanceCache.get('adapter');
+		// support ember 3.0 and ember 2.0
+		let adapter;
+		if (this._instanceCache) {
+			adapter = get(this, '_instanceCache.adapter');
+		} else {
+			adapter = get(this, '_adapterCache.application');
+		}
 
 		assert("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter", !isNone(adapter.rpcRequest));
 
