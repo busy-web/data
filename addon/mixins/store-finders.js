@@ -190,7 +190,12 @@ function _findRecords(adapter, store, modelClass, query) {
 		let serializer = serializerForAdapter(store, adapter, modelClass.modelName);
 		let payload = normalizeResponseHelper(serializer, store, modelClass, adapterPayload, null, 'query');
 
-		return payload;
+		let nextQuery = {};
+		if (nextParams(payload, nextQuery, query)) {
+			return _findRecords(adapter, store, modelClass, nextQuery).then(nextPayload => _mergeRecords([payload, nextPayload]));
+		} else {
+			return payload;
+		}
 	}, null, `DS: Extract payload of query ${modelClass.modelName}`);
 }
 
@@ -209,9 +214,23 @@ function _mergeRecords(records) {
 		if (!recordOut) {
 			recordOut = record;
 		} else {
-			// get total rows
-			let rows = getWithDefault(recordOut, 'meta.returnedRows', 0) + getWithDefault(record, 'returnedRows', 0);
-			set(recordOut, 'meta.returnedRows', rows);
+			if (get(recordOut, 'meta')) {
+				// get returned rows
+				set(recordOut, 'meta.returnedRows', getWithDefault(recordOut, 'meta.returnedRows', 0) + getWithDefault(record, 'meta.returnedRows', 0));
+
+				// keep track of next calls if there are any
+				set(recordOut, 'meta.next', get(record, 'meta.next'));
+
+				if (get(recordOut, 'meta.totalRows') !== get(record, 'meta.totalRows')) {
+					// get total rows
+					set(recordOut, 'meta.totalRows', getWithDefault(recordOut, 'meta.totalRows', 0) + getWithDefault(record, 'meta.totalRows', 0));
+				}
+			}
+
+			if (get(recordOut, 'links')) {
+				// keep track of next calls if there are any
+				set(recordOut, 'links.next', get(record, 'links.next'));
+			}
 
 			// merged data arrays
 			set(recordOut, 'data', get(recordOut, 'data').concat(get(record, 'data')));
@@ -350,7 +369,7 @@ function nextParams(model, query, lastQuery) {
 				set(query, key, value);
 			});
 		} else {
-			lastQuery.page = lastQuery.page + 1;
+			lastQuery.page = (lastQuery.page || 1) + 1;
 			merge(query, lastQuery);
 		}
 		return true;
