@@ -70,7 +70,7 @@ const RequestStore = EmberObject.extend({
 	},
 
 	flushPending() {
-		const pending = get(this, 'queue').splice(0);
+		const pending = get(this, 'queue').splice(0, 50);
 		const requests = {};
 		const responses = {};
 		const map = new window.Map();
@@ -149,10 +149,12 @@ export default Mixin.create(RPCAdapterMixin, {
 	},
 
 	_flushPending() {
-		if (get(this, '_requestStore.size') === 1) {
-			this._sendCall();
-		} else {
-			this._sendBatch();
+		if (get(this, '_requestStore.size') > 0) {
+			if (get(this, '_requestStore.size') === 1) {
+				this._sendCall();
+			} else {
+				this._sendBatch();
+			}
 		}
 	},
 
@@ -202,5 +204,7 @@ export default Mixin.create(RPCAdapterMixin, {
 				return reject(batch);
 			}
 		});
+
+		this._flushPending();
 	}
 });
