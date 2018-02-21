@@ -40,6 +40,12 @@ export default Mixin.create({
 					if (moreModels && get(moreModels, 'length') > 0) {
 						let mArray = moreModels.toArray().map(item => get(item, '_internalModel') || item);
 						models.pushObjects(mArray);
+						let meta = get(models, 'meta');
+						let moreMeta = get(moreModels, 'meta');
+						meta.next = moreMeta.next;
+						meta.returnedRows = meta.returnedRows + moreMeta.returnedRows
+
+						set(models, 'meta', meta);
 					}
 					return models;
 				});
