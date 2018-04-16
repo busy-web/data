@@ -2,6 +2,7 @@
  * @module store
  *
  */
+import { getOwner } from '@ember/application';
 import Mixin from '@ember/object/mixin';
 import { isArray } from '@ember/array';
 import { isNone, isEmpty } from '@ember/utils';
@@ -102,12 +103,17 @@ export default Mixin.create({
 		assert('params must be an object in store.rpcRequest()', !isNone(params) && typeof params === 'object');
 		assert('baseURL must be of type string in store.rpcRequest()', typeof baseURL === 'string');
 
-		// support ember 3.0 and ember 2.0
-		let adapter;
-		if (this._instanceCache) {
-			adapter = get(this, '_instanceCache.adapter');
-		} else {
-			adapter = get(this, '_adapterCache.application');
+		let owner = getOwner(this);
+
+		// support ember 2.0
+		let adapter = get(this, '_instanceCache.adapter');
+		if (isNone(adapter)) {
+			// support ember 3.0
+			adapter = get(this, '_adapterCache.application') || owner.lookup('adapter:application');
+			if (isNone(adapter)) {
+				let adapterName = get(this, 'adapter');
+				adapter = get(this, `_adapterCache.${adapterName}`) || owner.lookup(`adapter:${adapterName}`);
+			}
 		}
 
 		assert("In order to use rpcRequest your must include the rpc-adapter mixin in your adapter", !isNone(adapter.rpcRequest));
