@@ -50,5 +50,11 @@ export default Mixin.create(DataAdapterMixin, {
 
   authorize() {
     assert('The `authorize` method should be overridden in your application adapter. It should accept a single argument, the request object.');
+	},
+
+	headersForRequest() {
+		let headers = this.get('headers') || {};
+		headers['Accept'] = 'application/vnd.api+json';
+		return headers;
   }
 });
