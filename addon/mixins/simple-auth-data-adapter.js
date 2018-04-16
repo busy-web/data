@@ -4,7 +4,6 @@
  */
 import Mixin from '@ember/object/mixin';
 import { assert } from '@ember/debug';
-import { isPresent } from '@ember/utils';
 import DataAdapterMixin from 'ember-simple-auth/mixins/data-adapter-mixin';
 
 export default Mixin.create(DataAdapterMixin, {
@@ -28,16 +27,18 @@ export default Mixin.create(DataAdapterMixin, {
 	 * @protected
 	 */
 	_requestToJQueryAjaxHash(request) {
-    const authorizer = this.get('authorizer');
-    assert("You're using the DataAdapterMixin without specifying an authorizer. Please add `authorizer: 'authorizer:application'` to your adapter.", isPresent(authorizer));
-
 		let hash = this._super(request);
     let { beforeSend } = hash;
 
     hash.beforeSend = (xhr) => {
-      this.get('session').authorize(authorizer, (headerName, headerValue) => {
-        xhr.setRequestHeader(headerName, headerValue);
-      });
+      if (this.get('authorizer')) {
+        const authorizer = this.get('authorizer');
+        this.get('session').authorize(authorizer, (headerName, headerValue) => {
+          xhr.setRequestHeader(headerName, headerValue);
+        });
+      } else {
+        this.authorize(xhr);
+      }
 
       if (beforeSend) {
         beforeSend(xhr);
@@ -45,5 +46,9 @@ export default Mixin.create(DataAdapterMixin, {
     };
 
 		return hash;
-	}
+	},
+
+  authorize() {
+    assert('The `authorize` method should be overridden in your application adapter. It should accept a single argument, the request object.');
+  }
 });
