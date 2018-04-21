@@ -267,7 +267,7 @@ export default Mixin.create({
 			if (isNone(opts.options.query) && opts.kind === 'belongsTo' && key === 'id') {
 				relationship.data = null;
 
-				if (!isNone(id)) {
+				if (!isNone(id) && id !== '00000000-0000-0000-0000-000000000000') {
 					// add id for data object
 					relationship.data = {
 						type: opts.type,
@@ -291,7 +291,7 @@ export default Mixin.create({
 					}
 				}
 
-				if (!isNone(id)) {
+				if (!isNone(id) && id !== '00000000-0000-0000-0000-000000000000') {
 					// add id for data object
 					key = underscore(key);
 					link += `&${key}=${id}`;
