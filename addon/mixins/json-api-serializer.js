@@ -263,52 +263,57 @@ export default Mixin.create({
 			// create data object
 			const relationship = {};
 
-			// for a belongsTo relationship set the data as an object with `id` and `type`
-			if (isNone(opts.options.query) && opts.kind === 'belongsTo' && key === 'id') {
+			if (opts.kind === 'belongsTo' && isNone(id) || id === '00000000-0000-0000-0000-000000000000') {
 				relationship.data = null;
-
-				if (!isNone(id) && id !== '00000000-0000-0000-0000-000000000000') {
-					// add id for data object
-					relationship.data = {
-						type: opts.type,
-						id: id
-					};
-				}
-
-				// set the data object for the relationship
 				data[dasherize(opts.key)] = relationship;
-			} else { // for a has many set the data to an empty array
-				// create data object
-				let link = '';
-				if (!isNone(opts.options.query)) {
-					const queryParams = merge({}, opts.options.query);
-					if (this.validateQuery(json, queryParams)) {
-						link += query.stringify(queryParams);
+			} else {
+				// for a belongsTo relationship set the data as an object with `id` and `type`
+				if (isNone(opts.options.query) && opts.kind === 'belongsTo' && key === 'id') {
+					relationship.data = null;
 
-						if (opts.kind === 'belongsTo') {
-							link += `&page_size=1`;
+					if (!isNone(id)) {
+						// add id for data object
+						relationship.data = {
+							type: opts.type,
+							id: id
+						};
+					}
+
+					// set the data object for the relationship
+					data[dasherize(opts.key)] = relationship;
+				} else { // for a has many set the data to an empty array
+					// create data object
+					let link = '';
+					if (!isNone(opts.options.query)) {
+						const queryParams = merge({}, opts.options.query);
+						if (this.validateQuery(json, queryParams)) {
+							link += query.stringify(queryParams);
+
+							if (opts.kind === 'belongsTo') {
+								link += `&page_size=1`;
+							}
 						}
 					}
-				}
 
-				if (!isNone(id) && id !== '00000000-0000-0000-0000-000000000000') {
-					// add id for data object
-					key = underscore(key);
-					link += `&${key}=${id}`;
-				}
-
-				if (!isEmpty(link)) {
-					link = '?' + link.replace(/^&/, '');
-					relationship.links = { related: `/${opts.type}${link}` };
-				} else {
-					if (opts.kind === 'belongsTo') {
-						relationship.data = null;
-					} else {
-						relationship.data = [];
+					if (!isNone(id)) {
+						// add id for data object
+						key = underscore(key);
+						link += `&${key}=${id}`;
 					}
-				}
 
-				data[dasherize(opts.key)] = relationship;
+					if (!isEmpty(link)) {
+						link = '?' + link.replace(/^&/, '');
+						relationship.links = { related: `/${opts.type}${link}` };
+					} else {
+						if (opts.kind === 'belongsTo') {
+							relationship.data = null;
+						} else {
+							relationship.data = [];
+						}
+					}
+
+					data[dasherize(opts.key)] = relationship;
+				}
 			}
 		});
 
