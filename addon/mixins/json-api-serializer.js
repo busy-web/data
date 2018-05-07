@@ -263,7 +263,7 @@ export default Mixin.create({
 			// create data object
 			const relationship = {};
 
-			if (opts.kind === 'belongsTo' && isNone(id) || id === '00000000-0000-0000-0000-000000000000') {
+			if (opts.kind === 'belongsTo' && id === '00000000-0000-0000-0000-000000000000') {
 				relationship.data = null;
 				data[dasherize(opts.key)] = relationship;
 			} else {
