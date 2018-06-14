@@ -4,7 +4,7 @@
  */
 import Ember from 'ember';
 import DS from 'ember-data';
-import EmberPromise, { reject } from 'rsvp';
+import { Promise as EmberPromise, reject } from 'rsvp';
 import { run, later } from '@ember/runloop';
 import { isNone, isEmpty } from '@ember/utils';
 import { isArray } from '@ember/array';
