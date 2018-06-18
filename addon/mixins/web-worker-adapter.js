@@ -5,6 +5,7 @@
 import $ from 'jquery';
 import Mixin from '@ember/object/mixin';
 import { isEmpty } from '@ember/utils';
+import Query from './../utils/query';
 
 /**
  * WebWorkerMixin
@@ -89,8 +90,9 @@ function getAPIHash(opts) {
 	let hash = {
 		url: opts.url,
 		type: opts.type,
-		data: opts.data,
+		data: Query.stringify(opts.data),
 	};
+	console.log(opts.url, opts.data);
 	//hash.dataType = 'text';
 	hash.contentType = 'application/x-www-form-urlencoded; charset=UTF-8';
 	//hash.dataType = 'json';

@@ -11,6 +11,7 @@ import BatchAdapterMixin from './mixins/batch';
 import ImageAdapterMixin from './mixins/image-adapter';
 import RPCAdapterMixin from './mixins/rpc-adapter';
 import SimpleAuthDataAdapterMixin from './mixins/simple-auth-data-adapter';
+import WebWorkerAdapterMixin from './mixins/web-worker-adapter';
 import RPCModelMixin from './mixins/rpc-model';
 import StoreMixin from './mixins/store-finders';
 
@@ -23,6 +24,7 @@ export {
 	ImageAdapterMixin,
 	RPCAdapterMixin,
 	SimpleAuthDataAdapterMixin,
+	WebWorkerAdapterMixin,
 	RPCModelMixin,
 	StoreMixin,
 
