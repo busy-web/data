@@ -64,6 +64,9 @@ export default DS.JSONAPIAdapter.extend({
   },
 
 	handleResponse(status, headers, payload, requestData) {
+		if (typeof payload === 'string') {
+			payload = JSON.parse(payload);
+		}
 		headers = typeof headers === 'object' && headers ? headers : {};
 		set(headers, 'method', get(requestData, 'method'));
 		set(headers, 'url', get(requestData, 'url'));
@@ -79,6 +82,8 @@ export default DS.JSONAPIAdapter.extend({
 
 	_requestToJQueryAjaxHash(request) {
 		const hash = this._super({ url: request.url, method: "GET", headers: request.headers, data: request.data }) || {};
+		hash.__headers = request.headers;
+
 		set(hash, 'type', get(request, 'method'));
 		set(hash, 'data', getWithDefault(hash, 'data', {}));
 
@@ -131,8 +136,8 @@ export default DS.JSONAPIAdapter.extend({
 				error = isArray(error) ? error[0] : error;
 
 				let status = parseInt(get(error, 'status'), 10);
-				if (status === 429 && tries < 5) {
-					return this._waitPromise(300).then(() => {
+				if ((status === 0 || status === 429) && tries < 5) {
+					return this._waitPromise(500).then(() => {
 						return this._makeRequest(request, tries+1);
 					});
 				} else if (status === 500 && tries < 5) {
