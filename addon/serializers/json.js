@@ -93,7 +93,12 @@ export default DS.JSONAPISerializer.extend(JsonApiSerializerMixin, {
 			}
 		}
 
-		const changeAttrs = Object.keys(getWithDefault(snapshot, '_internalModel._inFlightAttributes', {}));
+		const changeAttrs = Object.keys(
+			getWithDefault(snapshot, '_changedAttributes', // new attr changes
+				getWithDefault(snapshot, '_internalModel._inFlightAttributes', {}) // support older attr changes
+			)
+		);
+
 		snapshot.eachAttribute((key, attribute) => {
 			if (isNew || changeAttrs.indexOf(key) !== -1) {
 				this.serializeAttribute(snapshot, data, key, attribute);
