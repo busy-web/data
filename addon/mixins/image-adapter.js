@@ -42,22 +42,22 @@ export default Mixin.create({
 		return hash;
 	},
 
-	_requestToJQueryAjaxHash(request) {
-		request = request || {};
+	// _requestToJQueryAjaxHash(request) {
+	//   request = request || {};
 
-		const isFile = !isNone(get(request, 'data._fileObject'));
-		if (isFile) {
-			request.headers.Accept = 'application/json; charset=utf-8';
-		}
+	//   const isFile = !isNone(get(request, 'data._fileObject'));
+	//   if (isFile) {
+	//     request.headers.Accept = 'application/json; charset=utf-8';
+	//   }
 
-		const hash = this._super(request) || {};
+	//   const hash = this._super(request) || {};
 
-		if (isFile) {
-			this.setupUpload(hash);
-		}
+	//   if (isFile) {
+	//     this.setupUpload(hash);
+	//   }
 
-		return hash;
-	},
+	//   return hash;
+	// },
 
 	/**
 	 * set up the ajax call for a file upload

@@ -121,21 +121,21 @@ export default Mixin.create(RPCAdapterMixin, {
 		this._requestStore.addRequest(hash);
 	},
 
-	_requestFor(params) {
-		const request = this._super(...arguments);
-		if (params.disableBatch || params._requestType === 'rpc') {
-			request.disableBatch = true;
-		}
-		return request;
-	},
+	// _requestFor(params) {
+	//   const request = this._super(...arguments);
+	//   if (params.disableBatch || params._requestType === 'rpc') {
+	//     request.disableBatch = true;
+	//   }
+	//   return request;
+	// },
 
-	_requestToJQueryAjaxHash(request) {
-		let hash = this._super(...arguments);
-		if (request.disableBatch) {
-			hash.disableBatch = true;
-		}
-		return hash;
-	},
+	// _requestToJQueryAjaxHash(request) {
+	//   let hash = this._super(...arguments);
+	//   if (request.disableBatch) {
+	//     hash.disableBatch = true;
+	//   }
+	//   return hash;
+	// },
 
 	_ajaxRequest(hash) {
 		if (this.get('isBatchEnabled') === true && !hash.disableBatch) {

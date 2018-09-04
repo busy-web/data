@@ -24,6 +24,11 @@ const { PromiseArray } = DS;
 export default Mixin.create({
 	_maxPageSize: 80,
 
+	query(modelType, query) {
+		return this._super(modelType, query)
+			.then(data => normalizeArrayResponse(data));
+	},
+
 	findAll(modelType, _query={}) {
 		// copy query object
 		const query = merge({}, _query);
@@ -38,20 +43,14 @@ export default Mixin.create({
 			let nextQuery = {};
 			if (nextParams(models, nextQuery, query)) {
 				return this.findAll(modelType, nextQuery).then(moreModels => {
-					if (moreModels && get(moreModels, 'length') > 0) {
-						let mArray = moreModels.toArray().map(item => get(item, '_internalModel') || item);
-						models.pushObjects(mArray);
-						let meta = get(models, 'meta');
-						let moreMeta = get(moreModels, 'meta');
-						meta.next = moreMeta.next;
-						meta.returnedRows = meta.returnedRows + moreMeta.returnedRows
-
-						set(models, 'meta', meta);
+					if (moreModels && moreModels.length > 0) {
+						moreModels = normalizeArrayResponse(moreModels);
+						models = mergeModels(models, moreModels);
 					}
 					return models;
 				});
 			} else {
-				return models;
+				return normalizeArrayResponse(models)
 			}
 		});
 	},
@@ -82,7 +81,20 @@ export default Mixin.create({
 			}
 		}
 
-		return this._findRecords(modelType, queryList, null);
+		const promise = all(
+			queryList.map(params =>
+				this.findAll(modelType, params)
+			)
+		);
+
+
+		return promise.then(results =>
+			results.reduce((a, b) =>
+				mergeModels(a, b), []
+			)
+		);
+
+		//return this._findRecords(modelType, queryList, null);
 	},
 
 	/**
@@ -153,6 +165,37 @@ export default Mixin.create({
 	}
 });
 
+function normalizeArrayResponse(data) {
+	const meta = get(data, 'meta');
+	data = data.toArray();
+	if (isEmpty(data)) {
+		return [];
+	}
+
+	data.meta = meta;
+	return data;
+}
+
+function mergeModels(a, b) {
+	if (isEmpty(a)) {
+		return b;
+	}
+
+	if (isEmpty(b)) {
+		return a;
+	}
+
+	a.pushObjects(b);
+
+	let aMeta = a.meta
+	let bMeta = b.meta;
+
+	aMeta.next = bMeta.next;
+	aMeta.returnedRows = aMeta.returnedRows + bMeta.returnedRows
+
+	a.meta = aMeta;
+	return a;
+}
 
 function _findRecordQueue(adapter, store, modelClass, queryObjects) {
 	// no queryObjects then return a default jsonapi response

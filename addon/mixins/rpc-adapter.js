@@ -1,10 +1,9 @@
 /**
  * @module Mixins
  */
-import Ember from 'ember';
 import { isArray, A } from '@ember/array';
 import { assert } from '@ember/debug';
-import { isNone, isEmpty } from '@ember/utils';
+import { isNone } from '@ember/utils';
 import EmberObject, { get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 
@@ -46,11 +45,6 @@ export default Mixin.create({
 	 * @return {RSVP.Promise}
 	 */
 	queryRPC(store, type, query) {
-		let promise;
-		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
-			const request = this._requestFor({ store, type, query, requestType: 'query', _requestType: 'rpc'});
-			promise = this._makeRequest(request);
-		} else {
 			let _requestType = 'rpc'
       let url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
 
@@ -60,10 +54,7 @@ export default Mixin.create({
         query = this.sortQueryParams(query);
       }
 
-      promise = this.ajax(url, 'POST', { _requestType, data: query });
-		}
-
-		return promise;
+			return this.ajax(url, 'POST', { _requestType, data: query });
 	},
 
 	rpcRequest(store, modelName, method, query={}, host) {
@@ -104,59 +95,59 @@ export default Mixin.create({
 		return this._super(params);
 	},
 
-	headersForRequest(params) {
-		const headers = this._super(params);
-		if (params._requestType === 'rpc') {
-			headers.Accept = 'application/json; charset=utf-8';
-		}
-		return headers;
-	},
+	// headersForRequest(params) {
+	//   const headers = this._super(params);
+	//   if (params._requestType === 'rpc') {
+	//     headers.Accept = 'application/json; charset=utf-8';
+	//   }
+	//   return headers;
+	// },
 
-	methodForRequest(params) {
-		if (params._requestType === 'rpc') {
-			return "POST";
-		}
-		return this._super(params);
-	},
+	// methodForRequest(params) {
+	//   if (params._requestType === 'rpc') {
+	//     return "POST";
+	//   }
+	//   return this._super(params);
+	// },
 
-	urlForRequest(params) {
-		let url = this._super(params);
-		if (params._requestType === 'rpc') {
-			const client = params.type.proto()._clientName;
-			if (params.type.modelName !== client) {
-				const regx = new RegExp(params.type.modelName);
-				url = url.replace(regx, client);
-			}
+	// urlForRequest(params) {
+	//   let url = this._super(params);
+	//   if (params._requestType === 'rpc') {
+	//     const client = params.type.proto()._clientName;
+	//     if (params.type.modelName !== client) {
+	//       const regx = new RegExp(params.type.modelName);
+	//       url = url.replace(regx, client);
+	//     }
 
-			const host = params.type.proto()._hostName;
-			if (!isEmpty(host) && get(this, 'host') !== host) {
-				const regx = new RegExp(get(this, 'host'));
-				url = url.replace(regx, host);
-			}
-		}
-		return url;
-	},
+	//     const host = params.type.proto()._hostName;
+	//     if (!isEmpty(host) && get(this, 'host') !== host) {
+	//       const regx = new RegExp(get(this, 'host'));
+	//       url = url.replace(regx, host);
+	//     }
+	//   }
+	//   return url;
+	// },
 
-	_requestFor(params) {
-		const res = this._super(params);
-		if (params._requestType === 'rpc') {
-			res._requestType = 'rpc';
-		}
-		return res;
-	},
+	// _requestFor(params) {
+	//   const res = this._super(params);
+	//   if (params._requestType === 'rpc') {
+	//     res._requestType = 'rpc';
+	//   }
+	//   return res;
+	// },
 
-	_requestToJQueryAjaxHash(request) {
-		let hash = this._super(request) || {};
+	// _requestToJQueryAjaxHash(request) {
+	//   let hash = this._super(request) || {};
 
-		if (request._requestType === 'rpc') {
-      hash.contentType = 'application/json; charset=utf-8';
-      hash.data = JSON.stringify(request.data);
-			hash.dataType = "json";
-			hash.disableBatch = true;
-		}
+	//   if (request._requestType === 'rpc') {
+  //     hash.contentType = 'application/json; charset=utf-8';
+  //     hash.data = JSON.stringify(request.data);
+	//     hash.dataType = "json";
+	//     hash.disableBatch = true;
+	//   }
 
-		return hash;
-	},
+	//   return hash;
+	// },
 
   handleResponse(status, headers, payload, requestData) {
 		if (payload && typeof payload === 'object' && get(payload, 'jsonrpc')) {

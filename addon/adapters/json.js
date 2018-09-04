@@ -2,16 +2,16 @@
  * @module adapters
  *
  */
-import Ember from 'ember';
+// import Ember from 'ember';
 import DS from 'ember-data';
-import { Promise as EmberPromise, reject } from 'rsvp';
-import { run, later } from '@ember/runloop';
+// import { Promise as EmberPromise, reject } from 'rsvp';
+// import { run, later } from '@ember/runloop';
 import { isNone, isEmpty } from '@ember/utils';
-import { isArray } from '@ember/array';
-import { merge } from '@ember/polyfills';
+// import { isArray } from '@ember/array';
+// import { merge } from '@ember/polyfills';
 import { get, set, getWithDefault } from '@ember/object';
 import { dasherize } from '@ember/string';
-import ErrorUtil from '@busy-web/data/utils/error';
+// import ErrorUtil from '@busy-web/data/utils/error';
 import QueryUtil from '@busy-web/data/utils/query';
 
 /**
@@ -42,26 +42,20 @@ export default DS.JSONAPIAdapter.extend({
 	version: 1,
 	debug: false,
 
-	urlForRequest(params) {
-		let url = this._super(params);
-		let type = this.methodForRequest(params);
-		return this._addUrlParams(url, type);
-	},
-
-	normalizeErrorResponse(status, headers, payload) {
-		const title = `Api Error: ${headers.method} - ${headers.url}`;
-    if (payload && typeof payload === 'object') {
-			return ErrorUtil.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
-    } else {
-      return [
-        {
-          title,
-          status: `${status}`,
-          detail: `${payload}`
-        }
-      ];
-    }
-  },
+	// normalizeErrorResponse(status, headers, payload) {
+	//   const title = `Api Error: ${headers.method} - ${headers.url}`;
+  //   if (payload && typeof payload === 'object') {
+	//     return ErrorUtil.parseAdapterErrors(title, status, get(payload, 'code'), get(payload, 'debug.errors'));
+  //   } else {
+  //     return [
+  //       {
+  //         title,
+  //         status: `${status}`,
+  //         detail: `${payload}`
+  //       }
+  //     ];
+  //   }
+  // },
 
 	handleResponse(status, headers, payload, requestData) {
 		headers = typeof headers === 'object' && headers ? headers : {};
@@ -69,46 +63,6 @@ export default DS.JSONAPIAdapter.extend({
 		set(headers, 'url', get(requestData, 'url'));
 
 		return this._super(status, headers, payload, requestData);
-	},
-
-	_requestFor(params) {
-		const request = this._super(params);
-		request.requestType = params.requestType;
-		return request;
-	},
-
-	_requestToJQueryAjaxHash(request) {
-		const hash = this._super({ url: request.url, method: "GET", headers: request.headers, data: request.data }) || {};
-		set(hash, 'type', get(request, 'method'));
-		set(hash, 'data', getWithDefault(hash, 'data', {}));
-
-		if (!isNone(get(hash, 'data.filter'))) {
-			this.changeFilter(get(hash, 'data'));
-		}
-
-		this.addDefaultParams(get(hash, 'data'), get(hash, 'type'));
-
-		return hash;
-	},
-
-	methodForRequest(params) {
-		let { requestType } = params;
-
-		switch (requestType) {
-			case 'createRecord': return 'POST';
-			case 'updateRecord': return 'PATCH';
-			case 'deleteRecord': return 'DELETE';
-		}
-
-		return 'GET';
-	},
-
-	_hasCustomizedAjax() {
-		if (Ember.FEATURES.isEnabled('ds-improved-ajax')) {
-			return false;
-		} else {
-			this._super(...arguments);
-		}
 	},
 
 	changeFilter(data) {
@@ -123,38 +77,38 @@ export default DS.JSONAPIAdapter.extend({
 		}
 	},
 
-	_makeRequest(request, tries=0) {
-		const _req = merge({}, request);
-		return this._super(_req).catch(err => {
-			if (!isEmpty(get(err, 'errors'))) {
-				let error = get(err, 'errors');
-				error = isArray(error) ? error[0] : error;
+	// _makeRequest(request, tries=0) {
+	//   const _req = merge({}, request);
+	//   return this._super(_req).catch(err => {
+	//     if (!isEmpty(get(err, 'errors'))) {
+	//       let error = get(err, 'errors');
+	//       error = isArray(error) ? error[0] : error;
 
-				let status = parseInt(get(error, 'status'), 10);
-				if (status === 429 && tries < 5) {
-					return this._waitPromise(300).then(() => {
-						return this._makeRequest(request, tries+1);
-					});
-				} else if (status === 500 && tries < 5) {
-					let detail = get(error, 'detail');
-					if (/failed to obtain lock with key/.test(detail)) {
-						return this._waitPromise(500).then(() => {
-							return this._makeRequest(request, tries+1);
-						});
-					}
-				}
-			}
-			return reject(err);
-		});
-	},
+	//       let status = parseInt(get(error, 'status'), 10);
+	//       if (status === 429 && tries < 5) {
+	//         return this._waitPromise(300).then(() => {
+	//           return this._makeRequest(request, tries+1);
+	//         });
+	//       } else if (status === 500 && tries < 5) {
+	//         let detail = get(error, 'detail');
+	//         if (/failed to obtain lock with key/.test(detail)) {
+	//           return this._waitPromise(500).then(() => {
+	//             return this._makeRequest(request, tries+1);
+	//           });
+	//         }
+	//       }
+	//     }
+	//     return reject(err);
+	//   });
+	// },
 
-	_waitPromise(time=1) {
-		return new EmberPromise(resolve => {
-			later(() => {
-				run(null, resolve, null);
-			}, time);
-		});
-	},
+	// _waitPromise(time=1) {
+	//   return new EmberPromise(resolve => {
+	//     later(() => {
+	//       run(null, resolve, null);
+	//     }, time);
+	//   });
+	// },
 
 	ajaxOptions(url, type, options) {
 		let _type = type === 'PUT' ? 'PATCH' : type;
@@ -212,9 +166,14 @@ export default DS.JSONAPIAdapter.extend({
 
 	_addUrlParams(url, type) {
 		let [ host, params ] = url.split('?');
+
 		params = QueryUtil.parse(params);
 		this.addUrlParams(params, type);
-		url =	host + '?' + QueryUtil.stringify(params);
+
+		const queryStr = QueryUtil.stringify(params);
+		if (!isEmpty(queryStr)) {
+			url =	host + '?' + queryStr;
+		}
 		return url;
 	}
 });
