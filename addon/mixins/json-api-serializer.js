@@ -8,7 +8,7 @@ import { underscore, dasherize } from '@ember/string';
 import { isNone, typeOf, isEmpty } from '@ember/utils';
 import { set, get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
-import { v4 } from 'ember-uuid';
+import uuid from '@busy-web/data/utils/uuid';
 import query from '@busy-web/data/utils/query';
 
 /***/
@@ -211,7 +211,7 @@ export default Mixin.create({
 						obj = this.buildNestedArray(store, primaryModelClass, i, value, included);
 					} else {
 						if (!get(value, primaryKey)) {
-							value.id = v4.apply(v4, arguments);
+							value.id = uuid();
 						}
 						// get the nested model
 						obj = this.buildNested(store, primaryModelClass, i, value, included);
