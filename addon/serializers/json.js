@@ -6,7 +6,6 @@ import DS from 'ember-data';
 import { get, getWithDefault } from '@ember/object';
 import { underscore } from '@ember/string';
 import { isNone } from '@ember/utils';
-import { v4 } from 'ember-uuid';
 import JsonApiSerializerMixin from '@busy-web/data/mixins/json-api-serializer';
 
 /**
@@ -49,10 +48,6 @@ export default DS.JSONAPISerializer.extend(JsonApiSerializerMixin, {
 				json[payloadKey] = value;
 			}
 		}
-	},
-
-	generateIdForRecord() {
-		return v4.apply(v4, arguments);
 	},
 
 	keyForAttribute(key) {
