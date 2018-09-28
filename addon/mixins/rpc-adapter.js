@@ -4,7 +4,7 @@
 import { isArray, A } from '@ember/array';
 import { assert } from '@ember/debug';
 import { isNone } from '@ember/utils';
-import EmberObject, { get } from '@ember/object';
+import { get } from '@ember/object';
 import Mixin from '@ember/object/mixin';
 
 /**
@@ -22,7 +22,7 @@ export default Mixin.create({
 	 * @method query
 	 */
 	query(store, type, query) {
-		if (type.proto()._isRPC) {
+		if (type.requestType === 'rpc') {
 			return this.queryRPC(store, type, query).then(data => {
 				if(!isArray(data.data)) {
 					data.data = A([data.data]);
@@ -45,49 +45,50 @@ export default Mixin.create({
 	 * @return {RSVP.Promise}
 	 */
 	queryRPC(store, type, query) {
-			let _requestType = 'rpc'
-      let url = this.buildURL(type.proto()._clientName, null, null, 'query', query);
+    let url = this.buildURL(type.modelName, null, null, 'query', query);
 
-			query = this.dataForRequest({ type, _requestType, query });
+		// url is provided to rpcRequest
+		if (type && type.host) {
+			const rpcHost = type.host;
+			const host = this.host;
 
-      if (this.sortQueryParams) {
-        query = this.sortQueryParams(query);
-      }
+			url = url.replace(host, rpcHost);
+		}
 
-			return this.ajax(url, 'POST', { _requestType, data: query });
+		// convert query to rpc query object
+		query = this.dataForRequest(type, query);
+
+		if (this.sortQueryParams) {
+			query = this.sortQueryParams(query);
+		}
+		return this.ajax(url, 'RPC', { data: query });
 	},
 
 	rpcRequest(store, modelName, method, query={}, host) {
-		const type = EmberObject.extend({
-			_methodName: method,
-			_clientName: modelName,
-			_hostName: host
-		}).reopenClass({ modelName });
-
+		const type = { modelName, method, host, requestType: 'rpc' };
 		return this.queryRPC(store, type, query);
 	},
 
 	ajaxOptions(url, type, options) {
-		const isRPC = get(options || {}, '_requestType') === 'rpc';
-		const hash = this._super(...arguments);
+		if (type === 'RPC') {
+			const hash = this._super(url, 'POST', options);
 
-		if (isRPC) {
 			hash.data = JSON.stringify(hash.data);
       hash.contentType = 'application/json; charset=utf-8';
 			hash.disableBatch = true;
-		}
 
-		return hash;
+			return hash;
+		}
+		return this._super(url, type, options);
 	},
 
-	dataForRequest(params) {
-		if (params._requestType === 'rpc') {
-			const method = params.type.proto()._methodName;
-			assert('The rpc model has no _methodName to call.', !isNone(method));
+	dataForRequest(type, params) {
+		if (type.requestType === 'rpc') {
+			assert('The rpc model has no _methodName to call.', !isNone(type.method));
 
 			return {
-				method,
-				params: params.query,
+				method: type.method,
+				params: params,
 				id: 1,
 				jsonrpc: '2.0'
 			};
