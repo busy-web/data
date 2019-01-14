@@ -158,10 +158,62 @@ export default Mixin.create({
 		return hash;
 	},
 
-  handleResponse(status, headers, payload, requestData) {
+	handleResponse(status, headers, payload, requestData) {
 		if (payload && typeof payload === 'object' && get(payload, 'jsonrpc')) {
-			payload = get(payload, 'result');
+			let result = get(payload, 'result');
+
+			if (isNone(result)) {
+				result = this.transformStatusCodeToPayload(status, payload);
+			}
+
+			payload = result;
 		}
+
 		return this._super(status, headers, payload, requestData);
+	},
+
+	// If the server response does not contain a payload, attempt to produce a payload based on the status code.
+	transformStatusCodeToPayload(status, payload) {
+		const statusCode = parseInt(status, 10);
+		const payloadError = get(payload, 'error');
+		const payloadWarning = get(payload, 'warning');
+		const payloadSuccess = get(payload, 'success');
+
+		// if the request has explicitly failed, send it back as is and Ember Data will throw
+		if (!isNone(payloadSuccess) && payloadSuccess === false) {
+			return payload;
+		}
+
+		let errors;
+		let warnings;
+		let code = [statusCode];
+
+		if (!isNone(payloadError)) {
+			errors = Array.isArray(payloadError) ? payloadError : [payloadError];
+		}
+
+		if (!isNone(warnings)) {
+			warnings = Array.isArray(payloadWarning) ? payloadWarning : [payloadWarning];
+		}
+
+		const success = (statusCode === 200 && isNone(errors));
+		const data = { success };
+		const debug = { warnings, errors };
+
+		if (!success) {
+			code = errors.map(err => get(err, 'code'));
+		}
+
+		const result = {
+			code,
+			data,
+			debug,
+			returned_rows: 1,
+			success: true,
+			supported: 200,
+			total_rows: 1,
+		};
+
+		return result;
 	}
 });
