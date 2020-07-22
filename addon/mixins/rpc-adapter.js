@@ -97,7 +97,7 @@ export default Mixin.create({
 			return {
 				method,
 				params: params.query,
-				id: 1,
+				id: '1',
 				jsonrpc: '2.0'
 			};
 		}
